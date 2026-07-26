@@ -1,0 +1,22 @@
+{
+  "name": "language-video-factory",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build": "node src/build.js",
+    "generate": "node src/generate.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "node src/test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}
