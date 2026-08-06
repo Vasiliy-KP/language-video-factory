@@ -1,26 +1,46 @@
-import { config } from "../config/config.js";
-import { logger } from "../utils/logger.js";
-import { ExcelReader } from "../data/excelReader.js";
-import { WordValidator } from "../validators/wordValidator.js";
+import path from "path";
+
+import { EdgeTTSService } from "../services/speech/EdgeTTSService.js";
 
 export class Pipeline {
 
-    async run() {
+    constructor() {
 
-        logger.success(config.app.name);
-        logger.info(`Version: ${config.app.version}`);
+        this.tts = new EdgeTTSService();
 
-        const reader = new ExcelReader();
+    }
 
-        const words = await reader.read();
+    async run(words) {
 
-        const validWords = words.filter(word =>
-            WordValidator.validate(word)
-        );
+        console.log("Pipeline started");
 
-        logger.success(`Valid words: ${validWords.length}`);
+        for (const word of words) {
 
-        console.table(validWords);
+            await this.tts.generate(
+                word.uk,
+                "uk",
+                path.join("output", "audio", `${word.uk}_uk.mp3`)
+            );
+
+            await this.tts.generate(
+                word.en,
+                "en",
+                path.join("output", "audio", `${word.en}_en.mp3`)
+            );
+
+            await this.tts.generate(
+                word.fr,
+                "fr",
+                path.join("output", "audio", `${word.fr}_fr.mp3`)
+            );
+
+            await this.tts.generate(
+                word.de,
+                "de",
+                path.join("output", "audio", `${word.de}_de.mp3`)
+            );
+
+        }
 
     }
 
