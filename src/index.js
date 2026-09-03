@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { config } from "./config/config.js";
 import { logger } from "./utils/logger.js";
 import { ExcelReader } from "./data/ExcelReader.js";

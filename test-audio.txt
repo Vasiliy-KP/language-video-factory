@@ -1,0 +1,4 @@
+file 'output/audio/велосипед_uk.mp3'
+file 'output/audio/Bicycle_en.mp3'
+file 'output/audio/Vélo_fr.mp3'
+file 'output/audio/Fahrrad_de.mp3'
