@@ -1,50 +1,61 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import path from "path";
 
 const execFileAsync = promisify(execFile);
 
 export class VideoService {
-    async create(
-        imagePath,
-        audioPath,
-        outputPath
-    ) {
+    async create(imagePath, audioPath, outputPath, subtitlePath = null) {
+        const absoluteImagePath = path.resolve(imagePath);
+        const absoluteAudioPath = path.resolve(audioPath);
+        const absoluteOutputPath = path.resolve(outputPath);
+
         const args = [
             "-loop",
             "1",
             "-i",
-            imagePath,
+            absoluteImagePath,
             "-i",
-            audioPath,
+            absoluteAudioPath,
+        ];
 
+        if (subtitlePath) {
+            const relativeSubtitlePath = path
+                .relative(process.cwd(), path.resolve(subtitlePath))
+                .replaceAll("\\", "/");
+
+            args.push(
+                "-vf",
+                `subtitles=filename='${this.escapeFilterPath(relativeSubtitlePath)}'`
+            );
+        } else {
+            args.push(
+                "-vf",
+                "format=yuv420p"
+            );
+        }
+
+        args.push(
             "-c:v",
             "libx264",
             "-tune",
             "stillimage",
-
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-
             "-pix_fmt",
             "yuv420p",
-
+            "-c:a",
+            "aac",
             "-shortest",
-
-            "-vf",
-            "scale=1080:1920:force_original_aspect_ratio=decrease," +
-            "pad=1080:1920:(ow-iw)/2:(oh-ih)/2",
-
             "-y",
-            outputPath
-        ];
-
-        await execFileAsync(
-            "ffmpeg",
-            args
+            absoluteOutputPath
         );
 
+        await execFileAsync("ffmpeg", args);
+
         return outputPath;
+    }
+
+    escapeFilterPath(filePath) {
+        return filePath
+            .replaceAll("'", "\\'");
     }
 }

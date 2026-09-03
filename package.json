@@ -10,7 +10,8 @@
     "generate": "node src/generate.js",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "node src/test.js"
+    "test": "node src/test.js",
+    "test:video-subtitles": "node test-video-subtitles.js"
   },
   "keywords": [],
   "author": "",

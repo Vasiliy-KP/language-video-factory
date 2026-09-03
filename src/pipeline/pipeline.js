@@ -4,6 +4,8 @@ import { AudioService } from "../services/audio/AudioService.js";
 import { CloudflareImageService } from "../services/image/CloudflareImageService.js";
 import { VideoService } from "../services/video/VideoService.js";
 import { OutputPathService } from "../services/OutputPathService.js";
+import { TimelineService } from "../services/video/TimelineService.js";
+import { SubtitleService } from "../services/video/SubtitleService.js";
 import { FileSystem } from "../utils/FileSystem.js";
 import { languages } from "../config/languages.js";
 
@@ -13,6 +15,9 @@ export class Pipeline {
         this.audio = new AudioService();
         this.image = new CloudflareImageService();
         this.video = new VideoService();
+
+        this.timeline = new TimelineService();
+        this.subtitle = new SubtitleService();
 
         this.concurrency = 4;
 
@@ -303,59 +308,69 @@ export class Pipeline {
     // VIDEO
     // =========================
 
-    async processVideoTask({
-        word,
-        imagePath,
-        audioPaths,
-        outputPath
-    }) {
+    async processVideoTask({ word, imagePath, audioPaths, outputPath }) {
         if (await FileSystem.exists(outputPath)) {
-            console.log(
-                `⏭ Video: ${word.en} — already exists`
-            );
-
+            console.log(`⏭ Video: ${word.en} — already exists`);
             return "skipped";
         }
 
-        for (
-            let attempt = 1;
-            attempt <= this.maxRetries;
-            attempt++
-        ) {
+        for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
             try {
                 console.log(
-                    `▶ Video: ${word.en} — generating ` +
-                    `(attempt ${attempt}/${this.maxRetries})`
+                    `▶ Video: ${word.en} — generating (attempt ${attempt}/${this.maxRetries})`
                 );
+
+                const wordSlug = word.en.toLowerCase();
 
                 const mergedAudioPath =
-                    `output/temp/${word.en.toLowerCase()}.mp3`;
+                    `output/temp/${wordSlug}.mp3`;
 
-                await FileSystem.ensureDirectory(
-                    mergedAudioPath
-                );
+                const subtitlePath =
+                    `output/temp/${wordSlug}.ass`;
 
+                await FileSystem.ensureDirectory(mergedAudioPath);
+                await FileSystem.ensureDirectory(subtitlePath);
+
+                // 1. Об'єднуємо аудіо всіх мов
                 await this.audio.merge(
                     audioPaths,
                     mergedAudioPath
                 );
 
+                // 2. Створюємо timeline на основі реальної
+                //    тривалості кожного аудіофайлу
+                const timeline = await this.timeline.createForWord(
+                    word,
+                    languages,
+                    OutputPathService
+                );
+
+                // 3. Створюємо ASS-субтитри
+                await this.subtitle.create(
+                    timeline,
+                    subtitlePath
+                );
+
+                // 4. Створюємо фінальне відео
                 await this.video.create(
                     imagePath,
                     mergedAudioPath,
-                    outputPath
+                    outputPath,
+                    subtitlePath
                 );
 
                 console.log(
                     `✅ Video: ${word.en} — generated`
                 );
 
-                return "generated";
+                console.log(
+                    `   Duration: ${this.timeline.getDuration(timeline).toFixed(3)} s`
+                );
 
+                return "generated";
             } catch (error) {
                 console.error(
-                    `⚠️ Video: ${word.en} — ` +
-                    `attempt ${attempt} failed`
+                    `⚠️ Video: ${word.en} — attempt ${attempt} failed`
                 );
 
                 console.error(error.message);
@@ -367,8 +382,7 @@ export class Pipeline {
         }
 
         console.error(
-            `❌ Video: ${word.en} — ` +
-            `failed after ${this.maxRetries} attempts`
+            `❌ Video: ${word.en} — failed after ${this.maxRetries} attempts`
         );
 
         return "failed";
