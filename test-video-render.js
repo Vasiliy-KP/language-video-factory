@@ -17,9 +17,8 @@ const word = {
 const imagePath = "output/images/bicycle.png";
 
 const outputPath =
-    "output/videos/test-bicycle-design.mp4";
-
-console.log("▶ Rendering Bicycle design...");
+    "output/videos/test-bicycle-flags.mp4";
+console.log("▶ Rendering Bicycle design with flags...");
 
 await renderer.render(
     word,

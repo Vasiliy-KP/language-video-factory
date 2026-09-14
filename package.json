@@ -13,7 +13,9 @@
     "test": "node src/test.js",
     "test:video-subtitles": "node test-video-subtitles.js",
     "test:video-template": "node test-video-template.js",
-    "test:video-render": "node test-video-render.js"
+    "test:video-render": "node test-video-render.js",
+    "test:flags": "node test-flag-assets.js",
+    "test:video-dynamic": "node test-video-dynamic.js"
   },
   "keywords": [],
   "author": "",

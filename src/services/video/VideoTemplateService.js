@@ -9,6 +9,7 @@ export class VideoTemplateService {
             colors: {
                 background: "#0F172A",
                 card: "#FFFFFF",
+                activeCard: "#1E293B",
                 title: "#94A3B8",
                 primary: "#38BDF8",
                 text: "#FFFFFF",
@@ -36,9 +37,25 @@ export class VideoTemplateService {
             },
 
             translations: {
-                startY: 1245,
+                startY: 1260,
                 lineHeight: 100,
-                labelFontSize: 34,
+
+                card: {
+                    x: 100,
+                    y: 1220,
+                    width: 880,
+                    height: 88,
+                },
+
+                flag: {
+                    x: 120,
+                    size: 56,
+                },
+
+                labelX: 210,
+                labelFontSize: 32,
+
+                textX: 300,
                 textFontSize: 58,
             },
 
