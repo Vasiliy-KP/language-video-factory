@@ -576,84 +576,183 @@ export class VideoRenderService {
                 return;
             }
 
-            const start = segment.start;
-            const end = segment.end;
+            const duration = segment.end - segment.start;
+
+            const fadeDuration = Math.min(
+                template.translations.animation.fadeDuration,
+                duration / 2
+            );
+
+            const slideDistance =
+                template.translations.animation.slideDistance;
+
+            const cardStart = segment.start;
+            const cardEnd = segment.end;
 
             /*
-             * ACTIVE CARD
+             * TRANSPARENT CARD CANVAS
              */
 
-            const cardOutput = `activeCard${index}`;
+            const cardBase = `cardBase${index}`;
 
             filters.push(
-                `[${currentInput}]` +
-                `drawbox=` +
-                `x=${template.translations.card.x}:` +
-                `y=${template.translations.card.y}:` +
-                `w=${template.translations.card.width}:` +
-                `h=${template.translations.card.height}:` +
-                `color=${template.colors.activeCard}:` +
-                `t=fill:` +
-                `enable='between(t,${start},${end})'` +
-                `[${cardOutput}]`
+                `color=c=black@0.0:` +
+                `s=${template.translations.card.width}x${template.translations.card.height}:` +
+                `r=30,` +
+                `format=rgba` +
+                `[${cardBase}]`
             );
 
             /*
-             * ACTIVE FLAG
+             * CARD BACKGROUND
              */
 
-            const flagOutput = `activeFlag${index}`;
+            const cardBackground = `cardBackground${index}`;
 
             filters.push(
-                `[${cardOutput}][${data.flag}]` +
+                `[${cardBase}]` +
+                `drawbox=` +
+                `x=0:` +
+                `y=0:` +
+                `w=${template.translations.card.width}:` +
+                `h=${template.translations.card.height}:` +
+                `color=${template.colors.activeCard}:` +
+                `t=fill` +
+                `[${cardBackground}]`
+            );
+
+            /*
+             * FLAG
+             */
+
+            const flagName = data.flag;
+
+            const cardWithFlag = `cardWithFlag${index}`;
+
+            const flagX =
+                template.translations.flag.x -
+                template.translations.card.x;
+
+            const flagY =
+                template.translations.startY -
+                template.translations.card.y -
+                12;
+
+            filters.push(
+                `[${cardBackground}][${flagName}]` +
                 `overlay=` +
-                `x=${template.translations.flag.x}:` +
-                `y=${template.translations.startY - 12}:` +
-                `enable='between(t,${start},${end})'` +
-                `[${flagOutput}]`
+                `x=${flagX}:` +
+                `y=${flagY}` +
+                `[${cardWithFlag}]`
             );
 
             /*
              * LANGUAGE LABEL
              */
 
-            const labelOutput = `activeLabel${index}`;
+            const cardWithLabel = `cardWithLabel${index}`;
+
+            const labelX =
+                template.translations.labelX -
+                template.translations.card.x;
+
+            const labelY =
+                template.translations.startY -
+                template.translations.card.y +
+                2;
 
             filters.push(
-                `[${flagOutput}]` +
+                `[${cardWithFlag}]` +
                 this.drawText({
                     fontPath,
                     text: data.label,
-                    fontSize: template.translations.labelFontSize,
-                    fontColor: template.colors.secondary,
-                    x: template.translations.labelX,
-                    y: template.translations.startY + 2,
-                    enable: `between(t,${start},${end})`,
+                    fontSize:
+                        template.translations.labelFontSize,
+                    fontColor:
+                        template.colors.secondary,
+                    x: labelX,
+                    y: labelY,
                 }) +
-                `[${labelOutput}]`
+                `[${cardWithLabel}]`
             );
 
             /*
              * TRANSLATION
              */
 
-            const textOutput = `activeText${index}`;
+            const cardWithText = `cardWithText${index}`;
+
+            const textX =
+                template.translations.textX -
+                template.translations.card.x;
+
+            const textY =
+                template.translations.startY -
+                template.translations.card.y -
+                10;
 
             filters.push(
-                `[${labelOutput}]` +
+                `[${cardWithLabel}]` +
                 this.drawText({
                     fontPath,
                     text: data.text,
-                    fontSize: template.translations.textFontSize,
-                    fontColor: template.colors.text,
-                    x: template.translations.textX,
-                    y: template.translations.startY - 10,
-                    enable: `between(t,${start},${end})`,
+                    fontSize:
+                        template.translations.textFontSize,
+                    fontColor:
+                        template.colors.text,
+                    x: textX,
+                    y: textY,
                 }) +
-                `[${textOutput}]`
+                `[${cardWithText}]`
             );
 
-            currentInput = textOutput;
+            /*
+             * FADE IN + FADE OUT
+             */
+
+            const animatedCard = `animatedCard${index}`;
+
+            const fadeOutStart =
+                Math.max(
+                    0,
+                    duration - fadeDuration
+                );
+
+            filters.push(
+                `[${cardWithText}]` +
+                `fade=` +
+                `t=in:` +
+                `st=0:` +
+                `d=${fadeDuration}:` +
+                `alpha=1,` +
+                `fade=` +
+                `t=out:` +
+                `st=${fadeOutStart}:` +
+                `d=${fadeDuration}:` +
+                `alpha=1,` +
+                `setpts=PTS-STARTPTS+${cardStart}/TB` +
+                `[${animatedCard}]`
+            );
+
+            /*
+             * SLIDE + OVERLAY
+             */
+
+            const nextInput =
+                `dynamicCard${index}`;
+
+            filters.push(
+                `[${currentInput}][${animatedCard}]` +
+                `overlay=` +
+                `x='${template.translations.card.x}+` +
+                `${slideDistance}*exp(-8*(t-${cardStart}))':` +
+                `y=${template.translations.card.y}:` +
+                `eof_action=pass:` +
+                `eval=frame` +
+                `[${nextInput}]`
+            );
+
+            currentInput = nextInput;
         });
 
         /*

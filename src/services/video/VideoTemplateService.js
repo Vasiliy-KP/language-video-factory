@@ -57,6 +57,11 @@ export class VideoTemplateService {
 
                 textX: 300,
                 textFontSize: 58,
+
+                animation: {
+                    fadeDuration: 0.18,
+                    slideDistance: 60,
+                },
             },
 
             footer: {
