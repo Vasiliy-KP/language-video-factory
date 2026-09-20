@@ -308,16 +308,29 @@ export class Pipeline {
     // VIDEO
     // =========================
 
-    async processVideoTask({ word, imagePath, audioPaths, outputPath }) {
+    async processVideoTask({
+        word,
+        imagePath,
+        audioPaths,
+        outputPath,
+    }) {
         if (await FileSystem.exists(outputPath)) {
-            console.log(`⏭ Video: ${word.en} — already exists`);
+            console.log(
+                `⏭ Video: ${word.en} — already exists`
+            );
+
             return "skipped";
         }
 
-        for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+        for (
+            let attempt = 1;
+            attempt <= this.maxRetries;
+            attempt++
+        ) {
             try {
                 console.log(
-                    `▶ Video: ${word.en} — generating (attempt ${attempt}/${this.maxRetries})`
+                    `▶ Video: ${word.en} — generating ` +
+                    `(attempt ${attempt}/${this.maxRetries})`
                 );
 
                 const wordSlug = word.en.toLowerCase();
@@ -325,38 +338,43 @@ export class Pipeline {
                 const mergedAudioPath =
                     `output/temp/${wordSlug}.mp3`;
 
-                const subtitlePath =
-                    `output/temp/${wordSlug}.ass`;
+                await FileSystem.ensureDirectory(
+                    mergedAudioPath
+                );
 
-                await FileSystem.ensureDirectory(mergedAudioPath);
-                await FileSystem.ensureDirectory(subtitlePath);
+                /*
+                 * 1. Merge language audio
+                 */
 
-                // 1. Об'єднуємо аудіо всіх мов
                 await this.audio.merge(
                     audioPaths,
                     mergedAudioPath
                 );
 
-                // 2. Створюємо timeline на основі реальної
-                //    тривалості кожного аудіофайлу
-                const timeline = await this.timeline.createForWord(
-                    word,
-                    languages,
-                    OutputPathService
-                );
+                /*
+                 * 2. Build timeline
+                 */
 
-                // 3. Створюємо ASS-субтитри
-                await this.subtitle.create(
-                    timeline,
-                    subtitlePath
-                );
+                const timeline =
+                    await this.timeline.createForWord(
+                        word,
+                        languages,
+                        OutputPathService
+                    );
 
-                // 4. Створюємо фінальне відео
+                const duration =
+                    this.timeline.getDuration(timeline);
+
+                /*
+                 * 3. Render final video
+                 */
+
                 await this.video.create(
+                    word,
                     imagePath,
                     mergedAudioPath,
-                    outputPath,
-                    subtitlePath
+                    timeline,
+                    outputPath
                 );
 
                 console.log(
@@ -364,13 +382,14 @@ export class Pipeline {
                 );
 
                 console.log(
-                    `   Duration: ${this.timeline.getDuration(timeline).toFixed(3)} s`
+                    `   Duration: ${duration.toFixed(3)} s`
                 );
 
                 return "generated";
             } catch (error) {
                 console.error(
-                    `⚠️ Video: ${word.en} — attempt ${attempt} failed`
+                    `⚠️ Video: ${word.en} — ` +
+                    `attempt ${attempt} failed`
                 );
 
                 console.error(error.message);
@@ -382,7 +401,8 @@ export class Pipeline {
         }
 
         console.error(
-            `❌ Video: ${word.en} — failed after ${this.maxRetries} attempts`
+            `❌ Video: ${word.en} — ` +
+            `failed after ${this.maxRetries} attempts`
         );
 
         return "failed";

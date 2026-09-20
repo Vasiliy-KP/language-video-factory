@@ -15,7 +15,8 @@
     "test:video-template": "node test-video-template.js",
     "test:video-render": "node test-video-render.js",
     "test:flags": "node test-flag-assets.js",
-    "test:video-dynamic": "node test-video-dynamic.js"
+    "test:video-dynamic": "node test-video-dynamic.js",
+    "test:video-service": "node test-video-service.js"
   },
   "keywords": [],
   "author": "",

@@ -1,61 +1,123 @@
+import fs from "fs/promises";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import path from "path";
 
+import { FileSystem } from "../../utils/FileSystem.js";
+import { VideoRenderService } from "./VideoRenderService.js";
+
 const execFileAsync = promisify(execFile);
 
 export class VideoService {
-    async create(imagePath, audioPath, outputPath, subtitlePath = null) {
-        const absoluteImagePath = path.resolve(imagePath);
+    constructor() {
+        this.renderer = new VideoRenderService();
+    }
+
+    async create(
+        word,
+        imagePath,
+        audioPath,
+        timeline,
+        outputPath
+    ) {
         const absoluteAudioPath = path.resolve(audioPath);
         const absoluteOutputPath = path.resolve(outputPath);
 
-        const args = [
-            "-loop",
-            "1",
-            "-i",
-            absoluteImagePath,
-            "-i",
-            absoluteAudioPath,
-        ];
+        const duration = this.getTimelineDuration(timeline);
 
-        if (subtitlePath) {
-            const relativeSubtitlePath = path
-                .relative(process.cwd(), path.resolve(subtitlePath))
-                .replaceAll("\\", "/");
+        const wordSlug = word.en.toLowerCase();
 
-            args.push(
-                "-vf",
-                `subtitles=filename='${this.escapeFilterPath(relativeSubtitlePath)}'`
-            );
-        } else {
-            args.push(
-                "-vf",
-                "format=yuv420p"
-            );
-        }
+        const visualPath = path.resolve(
+            "output",
+            "temp",
+            `${wordSlug}-visual.mp4`
+        );
 
-        args.push(
-            "-c:v",
-            "libx264",
-            "-tune",
-            "stillimage",
-            "-pix_fmt",
-            "yuv420p",
-            "-c:a",
-            "aac",
-            "-shortest",
-            "-y",
+        await FileSystem.ensureDirectory(
             absoluteOutputPath
         );
 
-        await execFileAsync("ffmpeg", args);
+        /*
+         * 1. Render visual layer
+         */
+
+        await this.renderer.renderDynamic(
+            word,
+            imagePath,
+            timeline,
+            visualPath,
+            duration
+        );
+
+        try {
+            /*
+             * 2. Combine video + audio
+             */
+
+            await execFileAsync("ffmpeg", [
+                "-i",
+                visualPath,
+
+                "-i",
+                absoluteAudioPath,
+
+                "-map",
+                "0:v:0",
+
+                "-map",
+                "1:a:0",
+
+                "-c:v",
+                "copy",
+
+                "-c:a",
+                "aac",
+
+                "-shortest",
+
+                "-movflags",
+                "+faststart",
+
+                "-y",
+                absoluteOutputPath,
+            ]);
+        } finally {
+            /*
+             * 3. Remove temporary visual video
+             */
+
+            await this.removeTempFile(visualPath);
+        }
 
         return outputPath;
     }
 
-    escapeFilterPath(filePath) {
-        return filePath
-            .replaceAll("'", "\\'");
+    getTimelineDuration(timeline) {
+        if (!timeline || timeline.length === 0) {
+            throw new Error(
+                "Cannot create video without timeline."
+            );
+        }
+
+        const duration =
+            timeline[timeline.length - 1].end;
+
+        if (
+            !Number.isFinite(duration) ||
+            duration <= 0
+        ) {
+            throw new Error(
+                "Invalid timeline duration."
+            );
+        }
+
+        return duration;
+    }
+
+    async removeTempFile(filePath) {
+        await fs.unlink(filePath).catch(() => {
+            // Temporary file cleanup failure
+            // should not break a successfully created video
+        });
     }
 }
