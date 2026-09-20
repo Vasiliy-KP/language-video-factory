@@ -56,7 +56,8 @@ export class VideoTemplateService {
                 labelFontSize: 32,
 
                 textX: 300,
-                textFontSize: 58,
+                textFontSize: 64,
+                textColor: "#38BDF8",
 
                 animation: {
                     fadeDuration: 0.18,

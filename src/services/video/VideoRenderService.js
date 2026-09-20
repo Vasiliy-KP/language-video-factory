@@ -699,7 +699,7 @@ export class VideoRenderService {
                     fontSize:
                         template.translations.textFontSize,
                     fontColor:
-                        template.colors.text,
+                        template.translations.textColor,
                     x: textX,
                     y: textY,
                 }) +
