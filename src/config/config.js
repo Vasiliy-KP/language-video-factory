@@ -1,4 +1,5 @@
 import path from "path";
+import { languages } from "./languages.js";
 
 export const config = {
     app: {
@@ -26,5 +27,7 @@ export const config = {
         fps: 30,
     },
 
-    languages: ["uk", "en", "fr", "de"],
+    languages: languages.map(
+        (language) => language.code
+    ),
 };

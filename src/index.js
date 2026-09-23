@@ -1,3 +1,4 @@
+import path from "path";
 import "dotenv/config";
 
 import { config } from "./config/config.js";
@@ -13,7 +14,18 @@ logger.info(`Version: ${config.app.version}`);
 
 const reader = new ExcelReader();
 
-const words = await reader.read();
+const excelFilePath = path.join(
+    config.paths.data,
+    "words.xlsx"
+);
+
+console.log(`ℹ️ Excel file: ${excelFilePath}`);
+
+const words = await reader.read(
+    excelFilePath
+);
+
+//const words = await reader.read();
 
 const validWords = words.filter(word =>
     WordValidator.validate(word)

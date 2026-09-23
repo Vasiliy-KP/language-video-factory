@@ -1,27 +1,23 @@
 import { FlagAssetService } from "./src/services/video/FlagAssetService.js";
+import { languages } from "./src/config/languages.js";
 import fs from "fs/promises";
 
 const flagService = new FlagAssetService();
 
-const languages = [
-    "uk",
-    "en",
-    "fr",
-    "de",
-];
-
 for (const language of languages) {
-    const flagPath = flagService.getFlagPath(language);
+    const flagPath = flagService.getFlagPath(
+        language.code
+    );
 
     try {
         await fs.access(flagPath);
 
         console.log(
-            `✅ ${language.toUpperCase()}: ${flagPath}`
+            `✅ ${language.code.toUpperCase()}: ${flagPath}`
         );
     } catch {
         console.error(
-            `❌ ${language.toUpperCase()}: missing ${flagPath}`
+            `❌ ${language.code.toUpperCase()}: missing ${flagPath}`
         );
     }
 }

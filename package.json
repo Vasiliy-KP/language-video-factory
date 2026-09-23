@@ -16,7 +16,8 @@
     "test:video-render": "node test-video-render.js",
     "test:flags": "node test-flag-assets.js",
     "test:video-dynamic": "node test-video-dynamic.js",
-    "test:video-service": "node test-video-service.js"
+    "test:video-service": "node test-video-service.js",
+    "test:excel-reader": "node test-excel-reader.js"
   },
   "keywords": [],
   "author": "",

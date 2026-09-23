@@ -7,6 +7,7 @@ export class WordValidator {
             "category",
             "uk",
             "en",
+            "pl",
             "fr",
             "de",
             "imagePrompt",

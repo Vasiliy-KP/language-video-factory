@@ -4,6 +4,7 @@ export class Word {
         this.category = data.category;
         this.uk = data.uk;
         this.en = data.en;
+        this.pl = data.pl;
         this.fr = data.fr;
         this.de = data.de;
         this.imagePrompt = data.imagePrompt;

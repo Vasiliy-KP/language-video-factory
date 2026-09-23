@@ -2,6 +2,8 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import path from "path";
 
+import { languages } from "../../config/languages.js";
+
 import { FileSystem } from "../../utils/FileSystem.js";
 import { VideoTemplateService } from "./VideoTemplateService.js";
 import { FlagAssetService } from "./FlagAssetService.js";
@@ -117,12 +119,12 @@ export class VideoRenderService {
             this.templateService.getFont()
         );
 
-        const flagPaths = {
-            uk: this.flagAssetService.getFlagPath("uk"),
-            en: this.flagAssetService.getFlagPath("en"),
-            fr: this.flagAssetService.getFlagPath("fr"),
-            de: this.flagAssetService.getFlagPath("de"),
-        };
+        const flagPaths = languages.map((language) => ({
+            code: language.code,
+            path: this.flagAssetService.getFlagPath(
+                language.code
+            ),
+        }));
 
         const filter = this.buildDynamicFilter(
             word,
@@ -141,27 +143,18 @@ export class VideoRenderService {
             "1",
             "-i",
             absoluteImagePath,
+        ];
 
-            "-loop",
-            "1",
-            "-i",
-            flagPaths.uk,
+        for (const flag of flagPaths) {
+            args.push(
+                "-loop",
+                "1",
+                "-i",
+                flag.path
+            );
+        }
 
-            "-loop",
-            "1",
-            "-i",
-            flagPaths.en,
-
-            "-loop",
-            "1",
-            "-i",
-            flagPaths.fr,
-
-            "-loop",
-            "1",
-            "-i",
-            flagPaths.de,
-
+        args.push(
             "-filter_complex",
             filter,
 
@@ -184,8 +177,8 @@ export class VideoRenderService {
             "+faststart",
 
             "-y",
-            absoluteOutputPath,
-        ];
+            absoluteOutputPath
+        );
 
         await execFileAsync("ffmpeg", args);
 
@@ -445,6 +438,16 @@ export class VideoRenderService {
     ) {
         const filters = [];
 
+        const primaryLanguage = languages.find(
+            (language) => language.primary
+        );
+
+        if (!primaryLanguage) {
+            throw new Error(
+                "Primary language is not configured."
+            );
+        }
+
         /*
          * MAIN IMAGE
          */
@@ -508,7 +511,7 @@ export class VideoRenderService {
             `[bg3]` +
             this.drawText({
                 fontPath,
-                text: word.uk,
+                text: word[primaryLanguage.field],
                 fontSize: template.mainWord.fontSize,
                 fontColor: template.colors.primary,
                 x: "(w-text_w)/2",
@@ -521,79 +524,49 @@ export class VideoRenderService {
          * FLAGS
          */
 
-        filters.push(
-            `[2:v]scale=${template.translations.flag.size}:${template.translations.flag.size}[flagUK]`
-        );
+        /*
+ * FLAGS
+ */
 
-        filters.push(
-            `[3:v]scale=${template.translations.flag.size}:${template.translations.flag.size}[flagEN]`
-        );
+        languages.forEach((language, index) => {
+            const inputIndex = index + 2;
 
-        filters.push(
-            `[4:v]scale=${template.translations.flag.size}:${template.translations.flag.size}[flagFR]`
-        );
-
-        filters.push(
-            `[5:v]scale=${template.translations.flag.size}:${template.translations.flag.size}[flagDE]`
-        );
-
+            filters.push(
+                `[${inputIndex}:v]` +
+                `scale=${template.translations.flag.size}:` +
+                `${template.translations.flag.size}` +
+                `[flag_${language.code}]`
+            );
+        });
         /*
          * ACTIVE LANGUAGE
          */
 
-        const languageData = {
-            uk: {
-                text: word.uk,
-                label: "UA",
-                flag: "flagUK",
-            },
-
-            en: {
-                text: word.en,
-                label: "EN",
-                flag: "flagEN",
-            },
-
-            fr: {
-                text: word.fr,
-                label: "FR",
-                flag: "flagFR",
-            },
-
-            de: {
-                text: word.de,
-                label: "DE",
-                flag: "flagDE",
-            },
-        };
-
         let currentInput = "bg4";
 
         timeline.forEach((segment, index) => {
-            const data = languageData[segment.language];
+            const language = languages.find(
+                (item) => item.code === segment.language
+            );
 
-            if (!data) {
+            if (!language) {
                 return;
             }
 
-            const duration = segment.end - segment.start;
-
-            const fadeDuration = Math.min(
-                template.translations.animation.fadeDuration,
-                duration / 2
-            );
-
-            const slideDistance =
-                template.translations.animation.slideDistance;
-
-            const cardStart = segment.start;
-            const cardEnd = segment.end;
-
-            /*
-             * TRANSPARENT CARD CANVAS
-             */
+            const start = segment.start;
+            const end = segment.end;
 
             const cardBase = `cardBase${index}`;
+            const cardBackground = `cardBackground${index}`;
+            const cardWithFlag = `cardWithFlag${index}`;
+            const cardWithLabel = `cardWithLabel${index}`;
+            const cardWithText = `cardWithText${index}`;
+            const animatedCard = `animatedCard${index}`;
+            const nextInput = `dynamicCard${index}`;
+
+            /*
+             * CARD CANVAS
+             */
 
             filters.push(
                 `color=c=black@0.0:` +
@@ -606,8 +579,6 @@ export class VideoRenderService {
             /*
              * CARD BACKGROUND
              */
-
-            const cardBackground = `cardBackground${index}`;
 
             filters.push(
                 `[${cardBase}]` +
@@ -625,9 +596,8 @@ export class VideoRenderService {
              * FLAG
              */
 
-            const flagName = data.flag;
-
-            const cardWithFlag = `cardWithFlag${index}`;
+            const flagName =
+                `flag_${language.code}`;
 
             const flagX =
                 template.translations.flag.x -
@@ -650,8 +620,6 @@ export class VideoRenderService {
              * LANGUAGE LABEL
              */
 
-            const cardWithLabel = `cardWithLabel${index}`;
-
             const labelX =
                 template.translations.labelX -
                 template.translations.card.x;
@@ -665,7 +633,7 @@ export class VideoRenderService {
                 `[${cardWithFlag}]` +
                 this.drawText({
                     fontPath,
-                    text: data.label,
+                    text: language.label,
                     fontSize:
                         template.translations.labelFontSize,
                     fontColor:
@@ -677,10 +645,8 @@ export class VideoRenderService {
             );
 
             /*
-             * TRANSLATION
+             * TRANSLATION TEXT
              */
-
-            const cardWithText = `cardWithText${index}`;
 
             const textX =
                 template.translations.textX -
@@ -695,7 +661,7 @@ export class VideoRenderService {
                 `[${cardWithLabel}]` +
                 this.drawText({
                     fontPath,
-                    text: data.text,
+                    text: segment.text,
                     fontSize:
                         template.translations.textFontSize,
                     fontColor:
@@ -707,48 +673,53 @@ export class VideoRenderService {
             );
 
             /*
-             * FADE IN + FADE OUT
+             * FADE
              */
 
-            const animatedCard = `animatedCard${index}`;
+            const segmentDuration =
+                segment.end - segment.start;
+
+            const fadeDuration = Math.min(
+                template.translations.animation.fadeDuration,
+                segmentDuration / 2
+            );
 
             const fadeOutStart =
                 Math.max(
                     0,
-                    duration - fadeDuration
+                    segmentDuration - fadeDuration
                 );
 
             filters.push(
                 `[${cardWithText}]` +
-                `fade=` +
-                `t=in:` +
+                `fade=t=in:` +
                 `st=0:` +
                 `d=${fadeDuration}:` +
                 `alpha=1,` +
-                `fade=` +
-                `t=out:` +
+                `fade=t=out:` +
                 `st=${fadeOutStart}:` +
                 `d=${fadeDuration}:` +
                 `alpha=1,` +
-                `setpts=PTS-STARTPTS+${cardStart}/TB` +
+                `setpts=PTS-STARTPTS+${start}/TB` +
                 `[${animatedCard}]`
             );
 
             /*
-             * SLIDE + OVERLAY
+             * SLIDE
              */
 
-            const nextInput =
-                `dynamicCard${index}`;
+            const slideDistance =
+                template.translations.animation.slideDistance;
 
             filters.push(
                 `[${currentInput}][${animatedCard}]` +
                 `overlay=` +
                 `x='${template.translations.card.x}+` +
-                `${slideDistance}*exp(-8*(t-${cardStart}))':` +
+                `${slideDistance}*exp(-8*(t-${start}))':` +
                 `y=${template.translations.card.y}:` +
                 `eof_action=pass:` +
-                `eval=frame` +
+                `eval=frame:` +
+                `enable='between(t,${start},${end})'` +
                 `[${nextInput}]`
             );
 

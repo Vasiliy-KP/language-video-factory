@@ -1,44 +1,55 @@
 import ExcelJS from "exceljs";
-import path from "path";
-import { logger } from "../utils/logger.js";
 import { Word } from "../models/Word.js";
-import { config } from "../config/config.js";
-
 
 export class ExcelReader {
-    constructor() {
-        this.filePath = path.resolve(config.paths.data,
-            config.data.wordsFile);
-    }
-
-    async read() {
+    async read(filePath) {
         const workbook = new ExcelJS.Workbook();
 
-        await workbook.xlsx.readFile(this.filePath);
+        await workbook.xlsx.readFile(filePath);
 
-        const worksheet = workbook.getWorksheet(1);
+        const worksheet = workbook.worksheets[0];
 
-        const rows = [];
+        if (!worksheet) {
+            throw new Error("Excel worksheet not found.");
+        }
 
-        worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber === 1) return;
+        const headerRow = worksheet.getRow(1);
 
-            rows.push(
-                new Word({
-                    id: row.getCell(1).value,
-                    category: row.getCell(2).value,
-                    uk: row.getCell(3).value,
-                    en: row.getCell(4).value,
-                    fr: row.getCell(5).value,
-                    de: row.getCell(6).value,
-                    imagePrompt: row.getCell(7).value,
-                    level: row.getCell(8).value,
-                })
+        const headers = headerRow.values
+            .slice(1)
+            .map((header) =>
+                String(header).trim()
             );
-        });
 
-        logger.success(`Loaded ${rows.length} words`);
+        const words = [];
 
-        return rows;
+        worksheet.eachRow(
+            (row, rowNumber) => {
+                if (rowNumber === 1) {
+                    return;
+                }
+
+                const data = {};
+
+                row.eachCell(
+                    (cell, columnNumber) => {
+                        const field =
+                            headers[columnNumber - 1];
+
+                        if (!field) {
+                            return;
+                        }
+
+                        data[field] = cell.value;
+                    }
+                );
+
+                words.push(
+                    new Word(data)
+                );
+            }
+        );
+
+        return words;
     }
 }

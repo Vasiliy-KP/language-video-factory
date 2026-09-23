@@ -1,28 +1,22 @@
 import path from "path";
+import { languages } from "../../config/languages.js";
 
 export class FlagAssetService {
-    constructor() {
-        this.flags = {
-            uk: "uk.png",
-            en: "en.png",
-            fr: "fr.png",
-            de: "de.png",
-        };
-    }
+    getFlagPath(languageCode) {
+        const language = languages.find(
+            (item) => item.code === languageCode
+        );
 
-    getFlagPath(language) {
-        const fileName = this.flags[language];
-
-        if (!fileName) {
+        if (!language) {
             throw new Error(
-                `Flag asset not found for language: ${language}`
+                `Language configuration not found: ${languageCode}`
             );
         }
 
         return path.resolve(
             "assets",
             "flags",
-            fileName
+            language.flag
         );
     }
 }
