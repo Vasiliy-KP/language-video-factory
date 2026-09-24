@@ -1,7 +1,11 @@
 import path from "path";
 
 export class VideoTemplateService {
-    getWordTemplate() {
+    getWordTemplate(languageCount = 5) {
+        const layout = this.getResponsiveLayout(
+            languageCount
+        );
+
         return {
             width: 1080,
             height: 1920,
@@ -32,17 +36,17 @@ export class VideoTemplateService {
             },
 
             mainWord: {
-                y: 1110,
-                fontSize: 88,
+                y: layout.mainWordY,
+                fontSize: layout.mainWordFontSize,
             },
 
             translations: {
-                startY: 1260,
-                lineHeight: 100,
+                startY: layout.translationStartY,
+                lineHeight: layout.translationLineHeight,
 
                 card: {
                     x: 100,
-                    y: 1220,
+                    y: layout.translationCardY,
                     width: 880,
                     height: 88,
                 },
@@ -56,7 +60,7 @@ export class VideoTemplateService {
                 labelFontSize: 32,
 
                 textX: 300,
-                textFontSize: 64,
+                textFontSize: layout.translationTextFontSize,
                 textColor: "#38BDF8",
 
                 animation: {
@@ -66,8 +70,8 @@ export class VideoTemplateService {
             },
 
             footer: {
-                dividerY: 1650,
-                textY: 1720,
+                dividerY: layout.footerDividerY,
+                textY: layout.footerTextY,
                 fontSize: 36,
             },
 
@@ -75,6 +79,115 @@ export class VideoTemplateService {
                 left: 120,
                 right: 120,
             },
+
+            responsive: {
+                languageCount,
+            },
+        };
+    }
+
+    getResponsiveLayout(languageCount) {
+        const count = Math.max(
+            1,
+            Number(languageCount) || 1
+        );
+
+        /*
+         * 5 languages = our current reference layout.
+         */
+
+        const referenceCount = 5;
+
+        /*
+         * Extra languages move the lower content
+         * slightly upward so the composition
+         * remains balanced.
+         */
+
+        const extraLanguages = Math.max(
+            0,
+            count - referenceCount
+        );
+
+        /*
+         * Fewer languages give us a little more
+         * vertical breathing room.
+         */
+
+        const fewerLanguages = Math.max(
+            0,
+            referenceCount - count
+        );
+
+        const translationStartY =
+            1260
+            - extraLanguages * 28
+            + Math.min(fewerLanguages, 2) * 18;
+
+        const translationCardY =
+            translationStartY - 40;
+
+        const footerDividerY =
+            1650
+            + Math.min(extraLanguages, 3) * 10;
+
+        const footerTextY =
+            1720
+            + Math.min(extraLanguages, 3) * 10;
+
+        /*
+         * Keep typography within safe limits.
+         */
+
+        const translationTextFontSize =
+            Math.max(
+                56,
+                Math.min(
+                    64,
+                    64 - extraLanguages * 2
+                )
+            );
+
+        const mainWordFontSize =
+            Math.max(
+                78,
+                Math.min(
+                    88,
+                    88 - extraLanguages * 2
+                )
+            );
+
+        /*
+         * Line height is only reduced when the
+         * language count becomes large.
+         */
+
+        const translationLineHeight =
+            Math.max(
+                82,
+                Math.min(
+                    100,
+                    100 - extraLanguages * 4
+                )
+            );
+
+        return {
+            mainWordY:
+                1110 - extraLanguages * 8,
+
+            mainWordFontSize,
+
+            translationStartY,
+
+            translationCardY,
+
+            translationLineHeight,
+
+            translationTextFontSize,
+
+            footerDividerY,
+
+            footerTextY,
         };
     }
 

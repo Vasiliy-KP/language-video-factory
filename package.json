@@ -17,7 +17,8 @@
     "test:flags": "node test-flag-assets.js",
     "test:video-dynamic": "node test-video-dynamic.js",
     "test:video-service": "node test-video-service.js",
-    "test:excel-reader": "node test-excel-reader.js"
+    "test:excel-reader": "node test-excel-reader.js",
+    "test:responsive-layout": "node test-responsive-layout.js"
   },
   "keywords": [],
   "author": "",
