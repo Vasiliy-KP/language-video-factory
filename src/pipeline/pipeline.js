@@ -8,6 +8,7 @@ import { TimelineService } from "../services/video/TimelineService.js";
 import { SubtitleService } from "../services/video/SubtitleService.js";
 import { FileSystem } from "../utils/FileSystem.js";
 import { languages } from "../config/languages.js";
+import { config } from "../config/config.js";
 
 export class Pipeline {
     constructor() {
@@ -374,7 +375,8 @@ export class Pipeline {
                     imagePath,
                     mergedAudioPath,
                     timeline,
-                    outputPath
+                    outputPath,
+                    config.video.design
                 );
 
                 console.log(

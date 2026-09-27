@@ -18,7 +18,8 @@ export class VideoService {
         imagePath,
         audioPath,
         timeline,
-        outputPath
+        outputPath,
+        designName = "default"
     ) {
         const absoluteAudioPath = path.resolve(audioPath);
         const absoluteOutputPath = path.resolve(outputPath);
@@ -46,7 +47,8 @@ export class VideoService {
             imagePath,
             timeline,
             visualPath,
-            duration
+            duration,
+            designName
         );
 
         try {

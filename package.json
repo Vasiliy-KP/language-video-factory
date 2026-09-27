@@ -20,7 +20,8 @@
     "test:excel-reader": "node test-excel-reader.js",
     "test:responsive-layout": "node test-responsive-layout.js",
     "test:design-config": "node test-video-design-config.js",
-    "test:video-minimal": "node test-video-dynamic-minimal.js"
+    "test:video-minimal": "node test-video-dynamic-minimal.js",
+    "test:pipeline-design": "node test-pipeline-design.js"
   },
   "keywords": [],
   "author": "",
