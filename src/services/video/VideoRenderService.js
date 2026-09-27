@@ -106,12 +106,13 @@ export class VideoRenderService {
         imagePath,
         timeline,
         outputPath,
-        duration
+        duration,
+        designName = "default"
     ) {
         const template =
             this.templateService.getWordTemplate(
                 languages.length,
-                "default"
+                designName
             );
 
         const absoluteImagePath = path.resolve(imagePath);
