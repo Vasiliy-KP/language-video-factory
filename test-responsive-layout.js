@@ -22,6 +22,23 @@ for (const count of languageCounts) {
             count
         );
 
+    const values = [
+        template.mainWord.y,
+        template.mainWord.fontSize,
+        template.translations.startY,
+        template.translations.card.y,
+        template.translations.lineHeight,
+        template.translations.textFontSize,
+        template.footer.dividerY,
+        template.footer.textY,
+    ];
+
+    if (values.some((value) => !Number.isFinite(value))) {
+        throw new Error(
+            `Invalid responsive layout for ${count} languages.`
+        );
+    }
+
     console.log(
         `${count} languages:`
     );

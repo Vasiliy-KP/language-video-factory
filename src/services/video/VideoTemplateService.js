@@ -1,9 +1,23 @@
 import path from "path";
 
+import { videoDesign } from "../../config/videoDesign.js";
+
 export class VideoTemplateService {
-    getWordTemplate(languageCount = 5) {
+    getWordTemplate(
+        languageCount = 5,
+        designName = "default"
+    ) {
+        const design = videoDesign[designName];
+
+        if (!design) {
+            throw new Error(
+                `Video design not found: ${designName}`
+            );
+        }
+
         const layout = this.getResponsiveLayout(
-            languageCount
+            languageCount,
+            design
         );
 
         return {
@@ -11,28 +25,15 @@ export class VideoTemplateService {
             height: 1920,
 
             colors: {
-                background: "#0F172A",
-                card: "#FFFFFF",
-                activeCard: "#1E293B",
-                title: "#94A3B8",
-                primary: "#38BDF8",
-                text: "#FFFFFF",
-                secondary: "#CBD5E1",
-                muted: "#64748B",
-                divider: "#334155",
+                ...design.colors,
             },
 
             title: {
-                text: "LEARN A NEW WORD",
-                fontSize: 44,
-                y: 120,
+                ...design.title,
             },
 
             image: {
-                x: 165,
-                y: 275,
-                width: 750,
-                height: 750,
+                ...design.image,
             },
 
             mainWord: {
@@ -45,74 +46,65 @@ export class VideoTemplateService {
                 lineHeight: layout.translationLineHeight,
 
                 card: {
-                    x: 100,
+                    x: design.translations.card.x,
                     y: layout.translationCardY,
-                    width: 880,
-                    height: 88,
+                    width: design.translations.card.width,
+                    height: design.translations.card.height,
                 },
 
                 flag: {
-                    x: 120,
-                    size: 56,
+                    ...design.translations.flag,
                 },
 
-                labelX: 210,
-                labelFontSize: 32,
+                labelX: design.translations.label.x,
+                labelFontSize:
+                    design.translations.label.fontSize,
 
-                textX: 300,
-                textFontSize: layout.translationTextFontSize,
-                textColor: "#38BDF8",
+                textX: design.translations.text.x,
+                textFontSize:
+                    layout.translationTextFontSize,
+
+                textColor: design.translations.text.color,
 
                 animation: {
-                    fadeDuration: 0.18,
-                    slideDistance: 60,
+                    ...design.translations.animation,
                 },
             },
 
             footer: {
                 dividerY: layout.footerDividerY,
                 textY: layout.footerTextY,
-                fontSize: 36,
+                fontSize: design.footer.fontSize,
+                categoryX: design.footer.categoryX,
+                levelX: design.footer.levelX,
             },
 
             margins: {
-                left: 120,
-                right: 120,
+                ...design.margins,
             },
 
             responsive: {
                 languageCount,
+                designName,
             },
         };
     }
 
-    getResponsiveLayout(languageCount) {
+    getResponsiveLayout(
+        languageCount,
+        design
+    ) {
         const count = Math.max(
             1,
             Number(languageCount) || 1
         );
 
-        /*
-         * 5 languages = our current reference layout.
-         */
-
         const referenceCount = 5;
-
-        /*
-         * Extra languages move the lower content
-         * slightly upward so the composition
-         * remains balanced.
-         */
 
         const extraLanguages = Math.max(
             0,
             count - referenceCount
         );
-
-        /*
-         * Fewer languages give us a little more
-         * vertical breathing room.
-         */
 
         const fewerLanguages = Math.max(
             0,
@@ -120,7 +112,8 @@ export class VideoTemplateService {
         );
 
         const translationStartY =
-            1260
+            design.translations.card.y
+            + 40
             - extraLanguages * 28
             + Math.min(fewerLanguages, 2) * 18;
 
@@ -128,23 +121,20 @@ export class VideoTemplateService {
             translationStartY - 40;
 
         const footerDividerY =
-            1650
+            design.footer.dividerY
             + Math.min(extraLanguages, 3) * 10;
 
         const footerTextY =
-            1720
+            design.footer.textY
             + Math.min(extraLanguages, 3) * 10;
-
-        /*
-         * Keep typography within safe limits.
-         */
 
         const translationTextFontSize =
             Math.max(
                 56,
                 Math.min(
-                    64,
-                    64 - extraLanguages * 2
+                    design.translations.text.fontSize,
+                    design.translations.text.fontSize -
+                    extraLanguages * 2
                 )
             );
 
@@ -152,15 +142,11 @@ export class VideoTemplateService {
             Math.max(
                 78,
                 Math.min(
-                    88,
-                    88 - extraLanguages * 2
+                    design.mainWord.fontSize,
+                    design.mainWord.fontSize -
+                    extraLanguages * 2
                 )
             );
-
-        /*
-         * Line height is only reduced when the
-         * language count becomes large.
-         */
 
         const translationLineHeight =
             Math.max(
@@ -173,7 +159,8 @@ export class VideoTemplateService {
 
         return {
             mainWordY:
-                1110 - extraLanguages * 8,
+                design.mainWord.y -
+                extraLanguages * 8,
 
             mainWordFontSize,
 

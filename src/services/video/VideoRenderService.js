@@ -110,7 +110,8 @@ export class VideoRenderService {
     ) {
         const template =
             this.templateService.getWordTemplate(
-                languages.length
+                languages.length,
+                "default"
             );
 
         const absoluteImagePath = path.resolve(imagePath);
@@ -718,7 +719,7 @@ export class VideoRenderService {
                 `[${currentInput}][${animatedCard}]` +
                 `overlay=` +
                 `x='${template.translations.card.x}+` +
-                `${slideDistance}*exp(-8*(t-${start}))':` +
+                `${slideDistance}*exp(-${template.translations.animation.slideSpeed}*(t-${start}))':` +
                 `y=${template.translations.card.y}:` +
                 `eof_action=pass:` +
                 `eval=frame:` +
@@ -756,7 +757,7 @@ export class VideoRenderService {
                 text: word.category.toUpperCase(),
                 fontSize: template.footer.fontSize,
                 fontColor: template.colors.secondary,
-                x: 120,
+                x: template.footer.categoryX,
                 y: template.footer.textY,
             }) +
             `[footer2]`
@@ -773,7 +774,7 @@ export class VideoRenderService {
                 text: word.level,
                 fontSize: template.footer.fontSize,
                 fontColor: template.colors.primary,
-                x: 900,
+                x: template.footer.levelX,
                 y: template.footer.textY,
             }) +
             `[out]`

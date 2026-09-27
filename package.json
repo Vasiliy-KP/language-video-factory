@@ -18,7 +18,8 @@
     "test:video-dynamic": "node test-video-dynamic.js",
     "test:video-service": "node test-video-service.js",
     "test:excel-reader": "node test-excel-reader.js",
-    "test:responsive-layout": "node test-responsive-layout.js"
+    "test:responsive-layout": "node test-responsive-layout.js",
+    "test:design-config": "node test-video-design-config.js"
   },
   "keywords": [],
   "author": "",
