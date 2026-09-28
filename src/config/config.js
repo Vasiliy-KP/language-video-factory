@@ -25,7 +25,8 @@ export const config = {
         width: 1080,
         height: 1920,
         fps: 30,
-        design: "minimal",
+        design: "default",
+        content: "default",
     },
 
     languages: languages.map(

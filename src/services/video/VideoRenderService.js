@@ -107,12 +107,14 @@ export class VideoRenderService {
         timeline,
         outputPath,
         duration,
-        designName = "default"
+        designName = "default",
+        contentName = "default"
     ) {
         const template =
             this.templateService.getWordTemplate(
                 languages.length,
-                designName
+                designName,
+                contentName
             );
 
         const absoluteImagePath = path.resolve(imagePath);
@@ -495,35 +497,53 @@ export class VideoRenderService {
          * TITLE
          */
 
-        filters.push(
-            `[bg2]` +
-            this.drawText({
-                fontPath,
-                text: template.title.text,
-                fontSize: template.title.fontSize,
-                fontColor: template.colors.title,
-                x: "(w-text_w)/2",
-                y: template.title.y,
-            }) +
-            `[bg3]`
-        );
+        let currentMainInput = "bg2";
+
+        if (template.content.title.enabled) {
+            filters.push(
+                `[${currentMainInput}]` +
+                this.drawText({
+                    fontPath,
+                    text: template.content.title.text,
+                    fontSize: template.title.fontSize,
+                    fontColor: template.colors.title,
+                    x: "(w-text_w)/2",
+                    y: template.title.y,
+                }) +
+                `[titleLayer]`
+            );
+
+            currentMainInput = "titleLayer";
+        }
 
         /*
          * UKRAINIAN MAIN WORD
          */
 
-        filters.push(
-            `[bg3]` +
-            this.drawText({
-                fontPath,
-                text: word[primaryLanguage.field],
-                fontSize: template.mainWord.fontSize,
-                fontColor: template.colors.primary,
-                x: "(w-text_w)/2",
-                y: template.mainWord.y,
-            }) +
-            `[bg4]`
-        );
+        if (template.content.mainWord.enabled) {
+            filters.push(
+                `[${currentMainInput}]` +
+                this.drawText({
+                    fontPath,
+                    text: word[primaryLanguage.field],
+                    fontSize: template.mainWord.fontSize,
+                    fontColor: template.colors.primary,
+                    x: "(w-text_w)/2",
+                    y: template.mainWord.y,
+                }) +
+                `[bg4]`
+            );
+
+            currentMainInput = "bg4";
+        } else {
+            filters.push(
+                `[${currentMainInput}]` +
+                `format=rgba` +
+                `[bg4]`
+            );
+
+            currentMainInput = "bg4";
+        }
 
         /*
          * FLAGS
@@ -533,16 +553,18 @@ export class VideoRenderService {
  * FLAGS
  */
 
-        languages.forEach((language, index) => {
-            const inputIndex = index + 2;
+        if (template.content.activeTranslation.showFlag) {
+            languages.forEach((language, index) => {
+                const inputIndex = index + 2;
 
-            filters.push(
-                `[${inputIndex}:v]` +
-                `scale=${template.translations.flag.size}:` +
-                `${template.translations.flag.size}` +
-                `[flag_${language.code}]`
-            );
-        });
+                filters.push(
+                    `[${inputIndex}:v]` +
+                    `scale=${template.translations.flag.size}:` +
+                    `${template.translations.flag.size}` +
+                    `[flag_${language.code}]`
+                );
+            });
+        }
         /*
          * ACTIVE LANGUAGE
          */
@@ -601,81 +623,106 @@ export class VideoRenderService {
              * FLAG
              */
 
-            const flagName =
-                `flag_${language.code}`;
+            let currentCardInput = cardBackground;
 
-            const flagX =
-                template.translations.flag.x -
-                template.translations.card.x;
+            if (
+                template.content.activeTranslation.showFlag
+            ) {
+                const flagName =
+                    `flag_${language.code}`;
 
-            const flagY =
-                template.translations.startY -
-                template.translations.card.y -
-                12;
+                const flagX =
+                    template.translations.flag.x -
+                    template.translations.card.x;
 
-            filters.push(
-                `[${cardBackground}][${flagName}]` +
-                `overlay=` +
-                `x=${flagX}:` +
-                `y=${flagY}` +
-                `[${cardWithFlag}]`
-            );
+                const flagY =
+                    template.translations.startY -
+                    template.translations.card.y -
+                    12;
+
+                filters.push(
+                    `[${currentCardInput}][${flagName}]` +
+                    `overlay=` +
+                    `x=${flagX}:` +
+                    `y=${flagY}` +
+                    `[${cardWithFlag}]`
+                );
+
+                currentCardInput = cardWithFlag;
+            }
 
             /*
              * LANGUAGE LABEL
              */
 
-            const labelX =
-                template.translations.labelX -
-                template.translations.card.x;
+            if (
+                template.content.activeTranslation
+                    .showLanguageLabel
+            ) {
+                const labelX =
+                    template.translations.labelX -
+                    template.translations.card.x;
 
-            const labelY =
-                template.translations.startY -
-                template.translations.card.y +
-                2;
+                const labelY =
+                    template.translations.startY -
+                    template.translations.card.y +
+                    2;
 
-            filters.push(
-                `[${cardWithFlag}]` +
-                this.drawText({
-                    fontPath,
-                    text: language.label,
-                    fontSize:
-                        template.translations.labelFontSize,
-                    fontColor:
-                        template.colors.secondary,
-                    x: labelX,
-                    y: labelY,
-                }) +
-                `[${cardWithLabel}]`
-            );
+                filters.push(
+                    `[${currentCardInput}]` +
+                    this.drawText({
+                        fontPath,
+                        text: language.label,
+                        fontSize:
+                            template.translations.labelFontSize,
+                        fontColor:
+                            template.colors.secondary,
+                        x: labelX,
+                        y: labelY,
+                    }) +
+                    `[${cardWithLabel}]`
+                );
+
+                currentCardInput = cardWithLabel;
+            }
 
             /*
              * TRANSLATION TEXT
              */
 
-            const textX =
-                template.translations.textX -
-                template.translations.card.x;
+            if (
+                template.content.activeTranslation.showText
+            ) {
+                const textY =
+                    template.translations.startY -
+                    template.translations.card.y -
+                    10;
 
-            const textY =
-                template.translations.startY -
-                template.translations.card.y -
-                10;
+                const textX =
+                    template.content.activeTranslation
+                        .showLanguageLabel
+                        ? template.translations.textX -
+                        template.translations.card.x
+                        : template.translations.labelX -
+                        template.translations.card.x;
 
-            filters.push(
-                `[${cardWithLabel}]` +
-                this.drawText({
-                    fontPath,
-                    text: segment.text,
-                    fontSize:
-                        template.translations.textFontSize,
-                    fontColor:
-                        template.translations.textColor,
-                    x: textX,
-                    y: textY,
-                }) +
-                `[${cardWithText}]`
-            );
+                filters.push(
+                    `[${currentCardInput}]` +
+                    this.drawText({
+                        fontPath,
+                        text: segment.text,
+                        fontSize:
+                            template.translations.textFontSize,
+                        fontColor:
+                            template.translations.textColor,
+                        x: textX,
+                        y: textY,
+                    }) +
+                    `[${cardWithText}]`
+                );
+
+                currentCardInput = cardWithText;
+            }
 
             /*
              * FADE
@@ -696,7 +743,7 @@ export class VideoRenderService {
                 );
 
             filters.push(
-                `[${cardWithText}]` +
+                `[${currentCardInput}]` +
                 `fade=t=in:` +
                 `st=0:` +
                 `d=${fadeDuration}:` +
@@ -735,51 +782,75 @@ export class VideoRenderService {
          * DIVIDER
          */
 
-        filters.push(
-            `[${currentInput}]` +
-            `drawbox=` +
-            `x=${template.margins.left}:` +
-            `y=${template.footer.dividerY}:` +
-            `w=${template.width - template.margins.left - template.margins.right}:` +
-            `h=2:` +
-            `color=${template.colors.divider}:` +
-            `t=fill` +
-            `[footer]`
-        );
+        let footerInput = currentInput;
+
+        const showCategory =
+            template.content.footer.showCategory;
+
+        const showLevel =
+            template.content.footer.showLevel;
+
+        if (showCategory || showLevel) {
+            filters.push(
+                `[${footerInput}]` +
+                `drawbox=` +
+                `x=${template.margins.left}:` +
+                `y=${template.footer.dividerY}:` +
+                `w=${template.width -
+                template.margins.left -
+                template.margins.right}:` +
+                `h=2:` +
+                `color=${template.colors.divider}:` +
+                `t=fill` +
+                `[footer]`
+            );
+
+            footerInput = "footer";
+        }
 
         /*
          * CATEGORY
          */
 
-        filters.push(
-            `[footer]` +
-            this.drawText({
-                fontPath,
-                text: word.category.toUpperCase(),
-                fontSize: template.footer.fontSize,
-                fontColor: template.colors.secondary,
-                x: template.footer.categoryX,
-                y: template.footer.textY,
-            }) +
-            `[footer2]`
-        );
+        if (showCategory) {
+            filters.push(
+                `[${footerInput}]` +
+                this.drawText({
+                    fontPath,
+                    text: word.category.toUpperCase(),
+                    fontSize: template.footer.fontSize,
+                    fontColor: template.colors.secondary,
+                    x: template.footer.categoryX,
+                    y: template.footer.textY,
+                }) +
+                `[footerCategory]`
+            );
+
+            footerInput = "footerCategory";
+        }
 
         /*
          * LEVEL
          */
 
-        filters.push(
-            `[footer2]` +
-            this.drawText({
-                fontPath,
-                text: word.level,
-                fontSize: template.footer.fontSize,
-                fontColor: template.colors.primary,
-                x: template.footer.levelX,
-                y: template.footer.textY,
-            }) +
-            `[out]`
-        );
+        if (showLevel) {
+            filters.push(
+                `[${footerInput}]` +
+                this.drawText({
+                    fontPath,
+                    text: word.level,
+                    fontSize: template.footer.fontSize,
+                    fontColor: template.colors.primary,
+                    x: template.footer.levelX,
+                    y: template.footer.textY,
+                }) +
+                `[out]`
+            );
+        } else {
+            filters.push(
+                `[${footerInput}]format=rgba[out]`
+            );
+        }
 
         return filters.join(";");
     }

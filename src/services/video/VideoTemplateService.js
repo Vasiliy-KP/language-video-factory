@@ -1,17 +1,26 @@
 import path from "path";
 
 import { videoDesign } from "../../config/videoDesign.js";
+import { videoContent } from "../../config/videoContent.js";
 
 export class VideoTemplateService {
     getWordTemplate(
         languageCount = 5,
-        designName = "default"
+        designName = "default",
+        contentName = "default"
     ) {
         const design = videoDesign[designName];
+        const content = videoContent[contentName];
 
         if (!design) {
             throw new Error(
                 `Video design not found: ${designName}`
+            );
+        }
+
+        if (!content) {
+            throw new Error(
+                `Video content profile not found: ${contentName}`
             );
         }
 
@@ -83,9 +92,14 @@ export class VideoTemplateService {
                 ...design.margins,
             },
 
+            content: {
+                ...content,
+            },
+
             responsive: {
                 languageCount,
                 designName,
+                contentName,
             },
         };
     }

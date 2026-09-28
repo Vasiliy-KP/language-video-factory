@@ -376,7 +376,8 @@ export class Pipeline {
                     mergedAudioPath,
                     timeline,
                     outputPath,
-                    config.video.design
+                    config.video.design,
+                    config.video.content
                 );
 
                 console.log(
