@@ -583,6 +583,18 @@ export class VideoRenderService {
             const start = segment.start;
             const end = segment.end;
 
+            const segmentDuration =
+                end - start;
+
+            const revealDelay =
+                template.content.activeTranslation.revealDelay || 0;
+
+            const contentStart =
+                Math.min(
+                    revealDelay,
+                    segmentDuration
+                );
+
             const cardBase = `cardBase${index}`;
             const cardBackground = `cardBackground${index}`;
             const cardWithFlag = `cardWithFlag${index}`;
@@ -706,8 +718,7 @@ export class VideoRenderService {
                         : template.translations.labelX -
                         template.translations.card.x;
 
-                filters.push(
-                    `[${currentCardInput}]` +
+                const textFilter =
                     this.drawText({
                         fontPath,
                         text: segment.text,
@@ -718,6 +729,11 @@ export class VideoRenderService {
                         x: textX,
                         y: textY,
                     }) +
+                    `:enable='between(t,${contentStart},${end})'`;
+
+                filters.push(
+                    `[${currentCardInput}]` +
+                    textFilter +
                     `[${cardWithText}]`
                 );
 
@@ -728,8 +744,6 @@ export class VideoRenderService {
              * FADE
              */
 
-            const segmentDuration =
-                segment.end - segment.start;
 
             const fadeDuration = Math.min(
                 template.translations.animation.fadeDuration,

@@ -55,6 +55,11 @@ for (const contentName of Object.keys(videoContent)) {
         }`
     );
 
+    console.log(
+        `  reveal delay: ${template.content.activeTranslation.revealDelay || 0
+        }s`
+    );
+
     console.log("");
 }
 

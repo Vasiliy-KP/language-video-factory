@@ -23,7 +23,8 @@
     "test:video-minimal": "node test-video-dynamic-minimal.js",
     "test:pipeline-design": "node test-pipeline-design.js",
     "test:content-config": "node test-video-content-config.js",
-    "test:video-simple": "node test-video-simple.js"
+    "test:video-simple": "node test-video-simple.js",
+    "test:video-quiz": "node test-video-quiz.js"
   },
   "keywords": [],
   "author": "",

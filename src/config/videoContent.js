@@ -44,4 +44,29 @@ export const videoContent = {
             showLevel: true,
         },
     },
+
+    quiz: {
+        title: {
+            text: "GUESS THE WORD",
+            enabled: true,
+        },
+
+        mainWord: {
+            enabled: true,
+            source: "primaryLanguage",
+        },
+
+        activeTranslation: {
+            showFlag: true,
+            showLanguageLabel: false,
+            showText: true,
+
+            revealDelay: 0.8,
+        },
+
+        footer: {
+            showCategory: false,
+            showLevel: true,
+        },
+    },
 };
