@@ -2,12 +2,11 @@ import fs from "fs/promises";
 import path from "path";
 
 export class FileSystem {
-
     static async ensureDirectory(filePath) {
         const dir = path.dirname(filePath);
 
         await fs.mkdir(dir, {
-            recursive: true
+            recursive: true,
         });
     }
 
@@ -18,5 +17,9 @@ export class FileSystem {
         } catch {
             return false;
         }
+    }
+
+    static async remove(filePath) {
+        await fs.unlink(filePath).catch(() => { });
     }
 }

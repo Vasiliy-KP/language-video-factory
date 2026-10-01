@@ -192,6 +192,110 @@ export class VideoRenderService {
         return outputPath;
     }
 
+    async renderQuiz(
+        word,
+        imagePath,
+        timeline,
+        outputPath,
+        duration,
+        designName = "minimal",
+        contentName = "quiz"
+    ) {
+        const template =
+            this.templateService.getWordTemplate(
+                languages.length,
+                designName,
+                contentName
+            );
+
+        const absoluteImagePath =
+            path.resolve(imagePath);
+
+        const absoluteOutputPath =
+            path.resolve(outputPath);
+
+        await FileSystem.ensureDirectory(
+            absoluteOutputPath
+        );
+
+        const fontPath =
+            this.escapeFilterPath(
+                this.templateService.getFont()
+            );
+
+        const flagPaths = languages.map(
+            (language) => ({
+                code: language.code,
+                path:
+                    this.flagAssetService.getFlagPath(
+                        language.code
+                    ),
+            })
+        );
+
+        const args = [
+            "-f",
+            "lavfi",
+            "-i",
+            `color=c=${template.colors.background}:s=${template.width}x${template.height}:r=30`,
+
+            "-loop",
+            "1",
+            "-i",
+            absoluteImagePath,
+        ];
+
+        for (const flag of flagPaths) {
+            args.push(
+                "-loop",
+                "1",
+                "-i",
+                flag.path
+            );
+        }
+
+        const filter =
+            this.buildQuizFilter(
+                word,
+                timeline,
+                template,
+                fontPath
+            );
+
+        args.push(
+            "-filter_complex",
+            filter,
+
+            "-map",
+            "[out]",
+
+            "-t",
+            String(duration),
+
+            "-r",
+            "30",
+
+            "-c:v",
+            "libx264",
+
+            "-pix_fmt",
+            "yuv420p",
+
+            "-movflags",
+            "+faststart",
+
+            "-y",
+            absoluteOutputPath
+        );
+
+        await execFileAsync(
+            "ffmpeg",
+            args
+        );
+
+        return outputPath;
+    }
+
     buildFilter(word, template, fontPath) {
         const filters = [];
 
@@ -865,6 +969,356 @@ export class VideoRenderService {
                 `[${footerInput}]format=rgba[out]`
             );
         }
+
+        return filters.join(";");
+    }
+
+    buildQuizFilter(
+        word,
+        timeline,
+        template,
+        fontPath
+    ) {
+        const filters = [];
+
+        const primaryLanguage =
+            languages.find(
+                (language) => language.primary
+            );
+
+        if (!primaryLanguage) {
+            throw new Error(
+                "Primary language is not configured."
+            );
+        }
+
+        /*
+         * MAIN IMAGE
+         */
+
+        filters.push(
+            `[1:v]` +
+            `scale=${template.image.width}:${template.image.height}:` +
+            `force_original_aspect_ratio=decrease,` +
+            `format=rgba` +
+            `[img]`
+        );
+
+        /*
+         * IMAGE CARD
+         */
+
+        filters.push(
+            `[0:v]` +
+            `drawbox=` +
+            `x=${template.image.x - 20}:` +
+            `y=${template.image.y - 20}:` +
+            `w=${template.image.width + 40}:` +
+            `h=${template.image.height + 40}:` +
+            `color=${template.colors.card}:` +
+            `t=fill` +
+            `[bg1]`
+        );
+
+        /*
+         * IMAGE
+         */
+
+        filters.push(
+            `[bg1][img]` +
+            `overlay=${template.image.x}:${template.image.y}` +
+            `[bg2]`
+        );
+
+        /*
+         * TITLE
+         */
+
+        filters.push(
+            `[bg2]` +
+            this.drawText({
+                fontPath,
+                text: template.content.title.text,
+                fontSize: template.title.fontSize,
+                fontColor: template.colors.title,
+                x: "(w-text_w)/2",
+                y: template.title.y,
+            }) +
+            `[bg3]`
+        );
+
+        /*
+         * MAIN WORD
+         */
+
+        filters.push(
+            `[bg3]` +
+            this.drawText({
+                fontPath,
+                text: word[primaryLanguage.field],
+                fontSize: template.mainWord.fontSize,
+                fontColor: template.colors.primary,
+                x: "(w-text_w)/2",
+                y: template.mainWord.y,
+            }) +
+            `[bg4]`
+        );
+
+        /*
+ * QUIZ FLAGS
+ *
+ * Quiz uses only target languages.
+ */
+
+        const quizLanguageCodes = [
+            ...new Set(
+                timeline.map(
+                    (segment) => segment.language
+                )
+            ),
+        ];
+
+        for (const languageCode of quizLanguageCodes) {
+            const language = languages.find(
+                (item) => item.code === languageCode
+            );
+
+            if (!language) {
+                continue;
+            }
+
+            const inputIndex =
+                languages.indexOf(language) + 2;
+
+            filters.push(
+                `[${inputIndex}:v]` +
+                `scale=${template.translations.flag.size}:` +
+                `${template.translations.flag.size}` +
+                `[flag_${language.code}]`
+            );
+        }
+
+        /*
+         * QUIZ CARDS
+         */
+
+        let currentInput = "bg4";
+
+        timeline.forEach(
+            (segment, index) => {
+                const language =
+                    languages.find(
+                        (item) =>
+                            item.code === segment.language
+                    );
+
+                if (!language) {
+                    return;
+                }
+
+                const start =
+                    segment.start;
+
+                const answerStart =
+                    segment.answerStart;
+
+                const end =
+                    segment.end;
+
+                const cardBase =
+                    `quizCardBase${index}`;
+
+                const cardBackground =
+                    `quizCardBackground${index}`;
+
+                const cardWithFlag =
+                    `quizCardFlag${index}`;
+
+                const cardWithText =
+                    `quizCardText${index}`;
+
+                const animatedCard =
+                    `quizAnimatedCard${index}`;
+
+                const nextInput =
+                    `quizDynamicCard${index}`;
+
+                /*
+                 * CARD CANVAS
+                 */
+
+                filters.push(
+                    `color=c=black@0.0:` +
+                    `s=${template.translations.card.width}x${template.translations.card.height}:` +
+                    `r=30,` +
+                    `format=rgba` +
+                    `[${cardBase}]`
+                );
+
+                /*
+                 * CARD BACKGROUND
+                 */
+
+                filters.push(
+                    `[${cardBase}]` +
+                    `drawbox=` +
+                    `x=0:` +
+                    `y=0:` +
+                    `w=${template.translations.card.width}:` +
+                    `h=${template.translations.card.height}:` +
+                    `color=${template.colors.activeCard}:` +
+                    `t=fill` +
+                    `[${cardBackground}]`
+                );
+
+                /*
+                 * FLAG
+                 */
+
+                const flagName =
+                    `flag_${language.code}`;
+
+                const flagX =
+                    template.translations.flag.x -
+                    template.translations.card.x;
+
+                const flagY =
+                    template.translations.startY -
+                    template.translations.card.y -
+                    12;
+
+                filters.push(
+                    `[${cardBackground}][${flagName}]` +
+                    `overlay=` +
+                    `x=${flagX}:` +
+                    `y=${flagY}` +
+                    `[${cardWithFlag}]`
+                );
+
+                /*
+                 * ANSWER TEXT
+                 *
+                 * It appears only after answerStart.
+                 */
+
+                const textX =
+                    template.translations.labelX -
+                    template.translations.card.x;
+
+                const textY =
+                    template.translations.startY -
+                    template.translations.card.y -
+                    10;
+
+                filters.push(
+                    `[${cardWithFlag}]` +
+                    this.drawText({
+                        fontPath,
+                        text: segment.answer.text,
+                        fontSize:
+                            template.translations.textFontSize,
+                        fontColor:
+                            template.translations.textColor,
+                        x: textX,
+                        y: textY,
+                        enable:
+                            `between(t,${answerStart - start},${end - start})`,
+                    }) +
+                    `[${cardWithText}]`
+                );
+
+                /*
+                 * FADE
+                 */
+
+                const segmentDuration =
+                    end - start;
+
+                const fadeDuration =
+                    Math.min(
+                        template.translations.animation.fadeDuration,
+                        segmentDuration / 2
+                    );
+
+                const fadeOutStart =
+                    Math.max(
+                        0,
+                        segmentDuration -
+                        fadeDuration
+                    );
+
+                filters.push(
+                    `[${cardWithText}]` +
+                    `fade=t=in:` +
+                    `st=0:` +
+                    `d=${fadeDuration}:` +
+                    `alpha=1,` +
+                    `fade=t=out:` +
+                    `st=${fadeOutStart}:` +
+                    `d=${fadeDuration}:` +
+                    `alpha=1,` +
+                    `setpts=PTS-STARTPTS+${start}/TB` +
+                    `[${animatedCard}]`
+                );
+
+                /*
+                 * SLIDE
+                 */
+
+                const slideDistance =
+                    template.translations.animation.slideDistance;
+
+                filters.push(
+                    `[${currentInput}][${animatedCard}]` +
+                    `overlay=` +
+                    `x='${template.translations.card.x}+` +
+                    `${slideDistance}*exp(-${template.translations.animation.slideSpeed}*(t-${start}))':` +
+                    `y=${template.translations.card.y}:` +
+                    `eof_action=pass:` +
+                    `eval=frame:` +
+                    `enable='between(t,${start},${end})'` +
+                    `[${nextInput}]`
+                );
+
+                currentInput =
+                    nextInput;
+            }
+        );
+
+        /*
+         * FOOTER
+         */
+
+        filters.push(
+            `[${currentInput}]` +
+            `drawbox=` +
+            `x=${template.margins.left}:` +
+            `y=${template.footer.dividerY}:` +
+            `w=${template.width -
+            template.margins.left -
+            template.margins.right}:` +
+            `h=2:` +
+            `color=${template.colors.divider}:` +
+            `t=fill` +
+            `[footer]`
+        );
+
+        /*
+         * LEVEL
+         */
+
+        filters.push(
+            `[footer]` +
+            this.drawText({
+                fontPath,
+                text: word.level,
+                fontSize: template.footer.fontSize,
+                fontColor: template.colors.primary,
+                x: template.footer.levelX,
+                y: template.footer.textY,
+            }) +
+            `[out]`
+        );
 
         return filters.join(";");
     }
