@@ -3,6 +3,7 @@ import { EdgeTTSService } from "../services/speech/EdgeTTSService.js";
 import { AudioService } from "../services/audio/AudioService.js";
 import { CloudflareImageService } from "../services/image/CloudflareImageService.js";
 import { VideoService } from "../services/video/VideoService.js";
+import { QuizVideoService } from "../services/video/QuizVideoService.js";
 import { OutputPathService } from "../services/OutputPathService.js";
 import { TimelineService } from "../services/video/TimelineService.js";
 import { SubtitleService } from "../services/video/SubtitleService.js";
@@ -16,6 +17,10 @@ export class Pipeline {
         this.audio = new AudioService();
         this.image = new CloudflareImageService();
         this.video = new VideoService();
+        this.quizVideoService = new QuizVideoService(
+            languages,
+            OutputPathService
+        );
 
         this.timeline = new TimelineService();
         this.subtitle = new SubtitleService();
@@ -334,6 +339,44 @@ export class Pipeline {
                     `(attempt ${attempt}/${this.maxRetries})`
                 );
 
+                /*
+                 * QUIZ VIDEO
+                 *
+                 * QuizVideoService сам виконує:
+                 * 1. Quiz timeline
+                 * 2. Quiz audio
+                 * 3. Quiz visual
+                 * 4. Video + audio mux
+                 */
+
+                if (config.video.content === "quiz") {
+                    const result =
+                        await this.quizVideoService.create(
+                            word,
+                            imagePath,
+                            outputPath,
+                            config.video.design,
+                            config.video.content
+                        );
+
+                    console.log(
+                        `✅ Quiz video: ${word.en} — generated`
+                    );
+
+                    console.log(
+                        `   Duration: ${result.duration.toFixed(3)} s`
+                    );
+
+                    return "generated";
+                }
+
+                /*
+                 * NORMAL VIDEO
+                 *
+                 * Звичайний Pipeline залишаємо
+                 * без змін.
+                 */
+
                 const wordSlug = word.en.toLowerCase();
 
                 const mergedAudioPath =
@@ -389,6 +432,7 @@ export class Pipeline {
                 );
 
                 return "generated";
+
             } catch (error) {
                 console.error(
                     `⚠️ Video: ${word.en} — ` +

@@ -28,7 +28,10 @@
     "test:quiz-timeline": "node test-quiz-timeline.js",
     "test:quiz-audio": "node test-quiz-audio.js",
     "test:quiz-video": "node test-quiz-video.js",
-    "test:quiz-service": "node test-quiz-service.js"
+    "test:quiz-service": "node test-quiz-service.js",
+    "test:pipeline-quiz": "node test-pipeline-quiz.js",
+    "test:pipeline-normal": "node test-pipeline-normal.js",
+    "test:pipeline-simple": "node test-pipeline-simple.js"
   },
   "keywords": [],
   "author": "",
