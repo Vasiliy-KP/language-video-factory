@@ -31,7 +31,8 @@
     "test:quiz-service": "node test-quiz-service.js",
     "test:pipeline-quiz": "node test-pipeline-quiz.js",
     "test:pipeline-normal": "node test-pipeline-normal.js",
-    "test:pipeline-simple": "node test-pipeline-simple.js"
+    "test:pipeline-simple": "node test-pipeline-simple.js",
+    "test:runtime-video-options": "node test-runtime-video-options.js"
   },
   "keywords": [],
   "author": "",

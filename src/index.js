@@ -2,6 +2,7 @@ import path from "path";
 import "dotenv/config";
 
 import { config } from "./config/config.js";
+import { parseRuntimeVideoOptions } from "./config/RuntimeVideoOptions.js";
 import { logger } from "./utils/logger.js";
 import { ExcelReader } from "./data/ExcelReader.js";
 import { WordValidator } from "./validators/wordValidator.js";
@@ -9,8 +10,21 @@ import { Pipeline } from "./pipeline/Pipeline.js";
 
 console.clear();
 
+const runtimeVideoOptions = parseRuntimeVideoOptions(
+    process.argv.slice(2),
+    {
+        content: config.video.content,
+        design: config.video.design,
+    }
+);
+
+config.video.content = runtimeVideoOptions.content;
+config.video.design = runtimeVideoOptions.design;
+
 logger.success(config.app.name);
 logger.info(`Version: ${config.app.version}`);
+logger.info(`Video content: ${config.video.content}`);
+logger.info(`Video design: ${config.video.design}`);
 
 const reader = new ExcelReader();
 
