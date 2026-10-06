@@ -47,8 +47,26 @@ const validWords = words.filter(word =>
 
 logger.success(`Valid words: ${validWords.length}`);
 
-console.table(validWords);
+let wordsToProcess = validWords;
+
+if (runtimeVideoOptions.word) {
+    wordsToProcess = validWords.filter(word =>
+        word.en.toLowerCase() === runtimeVideoOptions.word.toLowerCase()
+    );
+
+    if (wordsToProcess.length === 0) {
+        throw new Error(
+            `Word not found: "${runtimeVideoOptions.word}".`
+        );
+    }
+
+    logger.info(
+        `Selected word: ${wordsToProcess[0].en}`
+    );
+}
+
+console.table(wordsToProcess);
 
 const pipeline = new Pipeline();
 
-await pipeline.run(validWords);
+await pipeline.run(wordsToProcess);

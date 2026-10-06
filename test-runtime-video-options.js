@@ -8,7 +8,8 @@ function test(name, argv, defaults, expected) {
 
     const passed =
         result.content === expected.content &&
-        result.design === expected.design;
+        result.design === expected.design &&
+        result.word === expected.word;
 
     console.log(
         `${passed ? "✅" : "❌"} ${name}`
@@ -29,10 +30,12 @@ test(
     {
         content: "default",
         design: "default",
+        word: null,
     },
     {
         content: "default",
         design: "default",
+        word: null,
     }
 );
 
@@ -42,10 +45,12 @@ test(
     {
         content: "default",
         design: "default",
+        word: null,
     },
     {
         content: "quiz",
         design: "default",
+        word: null,
     }
 );
 
@@ -58,10 +63,12 @@ test(
     {
         content: "default",
         design: "default",
+        word: null,
     },
     {
         content: "simple",
         design: "minimal",
+        word: null,
     }
 );
 
@@ -71,10 +78,44 @@ test(
     {
         content: "default",
         design: "default",
+        word: null,
     },
     {
         content: "default",
         design: "minimal",
+        word: null,
+    }
+);
+
+test(
+    "Specific word",
+    ["--word=Bicycle"],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "default",
+        design: "default",
+        word: "Bicycle",
+    }
+);
+
+test(
+    "Word + quiz + minimal",
+    [
+        "--word=Apple",
+        "--content=quiz",
+        "--design=minimal",
+    ],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "quiz",
+        design: "minimal",
+        word: "Apple",
     }
 );
 

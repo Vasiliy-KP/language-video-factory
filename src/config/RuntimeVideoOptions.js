@@ -8,50 +8,54 @@ export function parseRuntimeVideoOptions(
     const options = {
         content: defaults.content ?? "default",
         design: defaults.design ?? "default",
+        word: defaults.word ?? null,
     };
 
     for (const arg of argv) {
         if (arg.startsWith("--content=")) {
-            options.content = arg.slice(
-                "--content=".length
-            );
+            options.content = arg.slice("--content=".length);
         }
 
         if (arg.startsWith("--design=")) {
-            options.design = arg.slice(
-                "--design=".length
-            );
+            options.design = arg.slice("--design=".length);
+        }
+
+        if (arg.startsWith("--word=")) {
+            options.word = arg.slice("--word=".length).trim();
         }
     }
 
     validateContent(options.content);
     validateDesign(options.design);
+    validateWord(options.word);
 
     return options;
 }
 
 function validateContent(content) {
     if (!Object.hasOwn(videoContent, content)) {
-        const available = Object.keys(
-            videoContent
-        ).join(", ");
+        const available = Object.keys(videoContent).join(", ");
 
         throw new Error(
-            `Invalid video content: "${content}". ` +
-            `Available: ${available}`
+            `Invalid video content: "${content}". Available: ${available}`
         );
     }
 }
 
 function validateDesign(design) {
     if (!Object.hasOwn(videoDesign, design)) {
-        const available = Object.keys(
-            videoDesign
-        ).join(", ");
+        const available = Object.keys(videoDesign).join(", ");
 
         throw new Error(
-            `Invalid video design: "${design}". ` +
-            `Available: ${available}`
+            `Invalid video design: "${design}". Available: ${available}`
+        );
+    }
+}
+
+function validateWord(word) {
+    if (word !== null && word.length === 0) {
+        throw new Error(
+            "Invalid word: value after --word= cannot be empty."
         );
     }
 }
