@@ -65,6 +65,36 @@ if (runtimeVideoOptions.word) {
     );
 }
 
+if (runtimeVideoOptions.words) {
+    const requestedWords = runtimeVideoOptions.words.map(
+        word => word.toLowerCase()
+    );
+
+    wordsToProcess = validWords.filter(word =>
+        requestedWords.includes(word.en.toLowerCase())
+    );
+
+    const foundWords = wordsToProcess.map(
+        word => word.en.toLowerCase()
+    );
+
+    const missingWords = requestedWords.filter(
+        word => !foundWords.includes(word)
+    );
+
+    if (missingWords.length > 0) {
+        throw new Error(
+            `Words not found: ${missingWords.join(", ")}.`
+        );
+    }
+
+    logger.info(
+        `Selected words: ${wordsToProcess
+            .map(word => word.en)
+            .join(", ")}`
+    );
+}
+
 console.table(wordsToProcess);
 
 const pipeline = new Pipeline();

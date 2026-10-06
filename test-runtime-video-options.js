@@ -1,26 +1,21 @@
 import { parseRuntimeVideoOptions } from "./src/config/RuntimeVideoOptions.js";
 
 function test(name, argv, defaults, expected) {
-    const result = parseRuntimeVideoOptions(
-        argv,
-        defaults
-    );
+    const result = parseRuntimeVideoOptions(argv, defaults);
 
     const passed =
         result.content === expected.content &&
         result.design === expected.design &&
-        result.word === expected.word;
+        result.word === expected.word &&
+        JSON.stringify(result.words) === JSON.stringify(expected.words);
 
-    console.log(
-        `${passed ? "✅" : "❌"} ${name}`
-    );
+    console.log(`${passed ? "✅" : "❌"} ${name}`);
 
     if (!passed) {
         console.log("Expected:", expected);
         console.log("Actual:", result);
-        throw new Error(
-            `Test failed: ${name}`
-        );
+
+        throw new Error(`Test failed: ${name}`);
     }
 }
 
@@ -30,12 +25,12 @@ test(
     {
         content: "default",
         design: "default",
-        word: null,
     },
     {
         content: "default",
         design: "default",
         word: null,
+        words: null,
     }
 );
 
@@ -45,12 +40,12 @@ test(
     {
         content: "default",
         design: "default",
-        word: null,
     },
     {
         content: "quiz",
         design: "default",
         word: null,
+        words: null,
     }
 );
 
@@ -63,12 +58,12 @@ test(
     {
         content: "default",
         design: "default",
-        word: null,
     },
     {
         content: "simple",
         design: "minimal",
         word: null,
+        words: null,
     }
 );
 
@@ -78,12 +73,12 @@ test(
     {
         content: "default",
         design: "default",
-        word: null,
     },
     {
         content: "default",
         design: "minimal",
         word: null,
+        words: null,
     }
 );
 
@@ -98,6 +93,7 @@ test(
         content: "default",
         design: "default",
         word: "Bicycle",
+        words: null,
     }
 );
 
@@ -116,8 +112,64 @@ test(
         content: "quiz",
         design: "minimal",
         word: "Apple",
+        words: null,
     }
 );
+
+test(
+    "Multiple words",
+    ["--words=Bicycle,Apple"],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "default",
+        design: "default",
+        word: null,
+        words: ["Bicycle", "Apple"],
+    }
+);
+
+test(
+    "Multiple words + quiz + minimal",
+    [
+        "--words=Bicycle,Apple",
+        "--content=quiz",
+        "--design=minimal",
+    ],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "quiz",
+        design: "minimal",
+        word: null,
+        words: ["Bicycle", "Apple"],
+    }
+);
+
+try {
+    parseRuntimeVideoOptions([
+        "--word=Bicycle",
+        "--words=Apple",
+    ]);
+
+    throw new Error(
+        "Expected --word + --words combination to fail."
+    );
+} catch (error) {
+    if (
+        !error.message.includes(
+            "Use either --word= or --words=, not both."
+        )
+    ) {
+        throw error;
+    }
+
+    console.log("✅ Word + words conflict");
+}
 
 console.log("");
 console.log(
