@@ -12,9 +12,14 @@ export function parseRuntimeVideoOptions(
         words: defaults.words ?? null,
         category: defaults.category ?? null,
         level: defaults.level ?? null,
+        help: false,
     };
 
     for (const arg of argv) {
+        if (arg === "--help" || arg === "-h") {
+            options.help = true;
+        }
+
         if (arg.startsWith("--content=")) {
             options.content = arg.slice("--content=".length);
         }
@@ -51,6 +56,10 @@ export function parseRuntimeVideoOptions(
                 .slice("--level=".length)
                 .trim();
         }
+    }
+
+    if (options.help) {
+        return options;
     }
 
     validateContent(options.content);

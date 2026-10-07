@@ -9,7 +9,8 @@ function test(name, argv, defaults, expected) {
         result.word === expected.word &&
         JSON.stringify(result.words) === JSON.stringify(expected.words) &&
         result.category === expected.category &&
-        result.level === expected.level;
+        result.level === expected.level &&
+        result.help === expected.help;
 
     console.log(`${passed ? "✅" : "❌"} ${name}`);
 
@@ -35,6 +36,7 @@ test(
         words: null,
         category: null,
         level: null,
+        help: false,
     }
 );
 
@@ -52,6 +54,7 @@ test(
         words: null,
         category: null,
         level: null,
+        help: false,
     }
 );
 
@@ -72,6 +75,7 @@ test(
         words: null,
         category: null,
         level: null,
+        help: false,
     }
 );
 
@@ -89,6 +93,7 @@ test(
         words: null,
         category: null,
         level: null,
+        help: false,
     }
 );
 
@@ -106,6 +111,7 @@ test(
         words: null,
         category: null,
         level: null,
+        help: false,
     }
 );
 
@@ -127,6 +133,7 @@ test(
         words: null,
         category: null,
         level: null,
+        help: false,
     }
 );
 
@@ -144,6 +151,7 @@ test(
         words: ["Bicycle", "Apple"],
         category: null,
         level: null,
+        help: false,
     }
 );
 
@@ -165,6 +173,7 @@ test(
         words: ["Bicycle", "Apple"],
         category: null,
         level: null,
+        help: false,
     }
 );
 
@@ -182,6 +191,7 @@ test(
         words: null,
         category: "Transport",
         level: null,
+        help: false,
     }
 );
 
@@ -199,6 +209,7 @@ test(
         words: null,
         category: null,
         level: "A1",
+        help: false,
     }
 );
 
@@ -219,6 +230,7 @@ test(
         words: null,
         category: "Transport",
         level: "A1",
+        help: false,
     }
 );
 
@@ -239,6 +251,7 @@ test(
         words: ["Bicycle", "Apple"],
         category: "Transport",
         level: null,
+        help: false,
     }
 );
 
@@ -259,6 +272,67 @@ test(
         words: ["Bicycle", "Apple"],
         category: null,
         level: "A1",
+        help: false,
+    }
+);
+
+test(
+    "Help",
+    ["--help"],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "default",
+        design: "default",
+        word: null,
+        words: null,
+        category: null,
+        level: null,
+        help: true,
+    }
+);
+
+test(
+    "Short help",
+    ["-h"],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "default",
+        design: "default",
+        word: null,
+        words: null,
+        category: null,
+        level: null,
+        help: true,
+    }
+);
+
+test(
+    "Help ignores invalid options",
+    [
+        "--help",
+        "--content=unknown",
+        "--design=unknown",
+        "--category=",
+        "--level=",
+    ],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "unknown",
+        design: "unknown",
+        word: null,
+        words: null,
+        category: "",
+        level: "",
+        help: true,
     }
 );
 

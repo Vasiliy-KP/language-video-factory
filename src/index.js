@@ -3,6 +3,7 @@ import "dotenv/config";
 
 import { config } from "./config/config.js";
 import { parseRuntimeVideoOptions } from "./config/RuntimeVideoOptions.js";
+import { showCliHelp } from "./config/cliHelp.js";
 import { logger } from "./utils/logger.js";
 import { ExcelReader } from "./data/ExcelReader.js";
 import { WordValidator } from "./validators/wordValidator.js";
@@ -17,6 +18,11 @@ const runtimeVideoOptions = parseRuntimeVideoOptions(
         design: config.video.design,
     }
 );
+
+if (runtimeVideoOptions.help) {
+    showCliHelp();
+    process.exit(0);
+}
 
 config.video.content = runtimeVideoOptions.content;
 config.video.design = runtimeVideoOptions.design;
