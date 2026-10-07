@@ -10,6 +10,8 @@ export function parseRuntimeVideoOptions(
         design: defaults.design ?? "default",
         word: defaults.word ?? null,
         words: defaults.words ?? null,
+        category: defaults.category ?? null,
+        level: defaults.level ?? null,
     };
 
     for (const arg of argv) {
@@ -22,7 +24,9 @@ export function parseRuntimeVideoOptions(
         }
 
         if (arg.startsWith("--word=")) {
-            options.word = arg.slice("--word=".length).trim();
+            options.word = arg
+                .slice("--word=".length)
+                .trim();
         }
 
         if (arg.startsWith("--words=")) {
@@ -35,12 +39,26 @@ export function parseRuntimeVideoOptions(
                 .map(word => word.trim())
                 .filter(Boolean);
         }
+
+        if (arg.startsWith("--category=")) {
+            options.category = arg
+                .slice("--category=".length)
+                .trim();
+        }
+
+        if (arg.startsWith("--level=")) {
+            options.level = arg
+                .slice("--level=".length)
+                .trim();
+        }
     }
 
     validateContent(options.content);
     validateDesign(options.design);
     validateWord(options.word);
     validateWords(options.words);
+    validateCategory(options.category);
+    validateLevel(options.level);
     validateWordOptionsCombination(options);
 
     return options;
@@ -78,6 +96,22 @@ function validateWords(words) {
     if (words !== null && words.length === 0) {
         throw new Error(
             "Invalid words: value after --words= cannot be empty."
+        );
+    }
+}
+
+function validateCategory(category) {
+    if (category !== null && category.length === 0) {
+        throw new Error(
+            "Invalid category: value after --category= cannot be empty."
+        );
+    }
+}
+
+function validateLevel(level) {
+    if (level !== null && level.length === 0) {
+        throw new Error(
+            "Invalid level: value after --level= cannot be empty."
         );
     }
 }

@@ -49,37 +49,41 @@ logger.success(`Valid words: ${validWords.length}`);
 
 let wordsToProcess = validWords;
 
+// Filter by one specific word
 if (runtimeVideoOptions.word) {
-    wordsToProcess = validWords.filter(word =>
-        word.en.toLowerCase() === runtimeVideoOptions.word.toLowerCase()
+    const requestedWord = runtimeVideoOptions.word.toLowerCase();
+
+    const wordExists = validWords.some(word =>
+        word.en.toLowerCase() === requestedWord
     );
 
-    if (wordsToProcess.length === 0) {
+    if (!wordExists) {
         throw new Error(
             `Word not found: "${runtimeVideoOptions.word}".`
         );
     }
+
+    wordsToProcess = wordsToProcess.filter(word =>
+        word.en.toLowerCase() === requestedWord
+    );
 
     logger.info(
         `Selected word: ${wordsToProcess[0].en}`
     );
 }
 
+// Filter by multiple words
 if (runtimeVideoOptions.words) {
     const requestedWords = runtimeVideoOptions.words.map(
         word => word.toLowerCase()
     );
 
-    wordsToProcess = validWords.filter(word =>
-        requestedWords.includes(word.en.toLowerCase())
-    );
-
-    const foundWords = wordsToProcess.map(
+    const validWordNames = validWords.map(
         word => word.en.toLowerCase()
     );
 
     const missingWords = requestedWords.filter(
-        word => !foundWords.includes(word)
+        word => !validWordNames.includes(word)
     );
 
     if (missingWords.length > 0) {
@@ -88,10 +92,49 @@ if (runtimeVideoOptions.words) {
         );
     }
 
+    wordsToProcess = wordsToProcess.filter(word =>
+        requestedWords.includes(word.en.toLowerCase())
+    );
+
     logger.info(
         `Selected words: ${wordsToProcess
             .map(word => word.en)
             .join(", ")}`
+    );
+}
+
+// Filter by category
+if (runtimeVideoOptions.category) {
+    const requestedCategory =
+        runtimeVideoOptions.category.toLowerCase();
+
+    wordsToProcess = wordsToProcess.filter(word =>
+        word.category.toLowerCase() === requestedCategory
+    );
+
+    logger.info(
+        `Category filter: ${runtimeVideoOptions.category}`
+    );
+}
+
+// Filter by level
+if (runtimeVideoOptions.level) {
+    const requestedLevel =
+        runtimeVideoOptions.level.toLowerCase();
+
+    wordsToProcess = wordsToProcess.filter(word =>
+        word.level.toLowerCase() === requestedLevel
+    );
+
+    logger.info(
+        `Level filter: ${runtimeVideoOptions.level}`
+    );
+}
+
+// Make sure filters did not produce an empty result
+if (wordsToProcess.length === 0) {
+    throw new Error(
+        "No words match the selected filters."
     );
 }
 
