@@ -18,20 +18,26 @@ export function parseRuntimeVideoOptions(
     for (const arg of argv) {
         if (arg === "--help" || arg === "-h") {
             options.help = true;
+            continue;
         }
 
         if (arg.startsWith("--content=")) {
-            options.content = arg.slice("--content=".length);
+            options.content = arg
+                .slice("--content=".length);
+            continue;
         }
 
         if (arg.startsWith("--design=")) {
-            options.design = arg.slice("--design=".length);
+            options.design = arg
+                .slice("--design=".length);
+            continue;
         }
 
         if (arg.startsWith("--word=")) {
             options.word = arg
                 .slice("--word=".length)
                 .trim();
+            continue;
         }
 
         if (arg.startsWith("--words=")) {
@@ -43,19 +49,27 @@ export function parseRuntimeVideoOptions(
                 .split(",")
                 .map(word => word.trim())
                 .filter(Boolean);
+
+            continue;
         }
 
         if (arg.startsWith("--category=")) {
             options.category = arg
                 .slice("--category=".length)
                 .trim();
+            continue;
         }
 
         if (arg.startsWith("--level=")) {
             options.level = arg
                 .slice("--level=".length)
                 .trim();
+            continue;
         }
+
+        throw new Error(
+            `Unknown option: "${arg}". Use --help to see available options.`
+        );
     }
 
     if (options.help) {

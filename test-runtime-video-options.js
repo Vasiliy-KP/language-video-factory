@@ -393,6 +393,46 @@ try {
     console.log("✅ Empty level validation");
 }
 
+try {
+    parseRuntimeVideoOptions([
+        "--foo=bar",
+    ]);
+
+    throw new Error(
+        "Expected unknown option to fail."
+    );
+} catch (error) {
+    if (
+        !error.message.includes(
+            'Unknown option: "--foo=bar".'
+        )
+    ) {
+        throw error;
+    }
+
+    console.log("✅ Unknown option validation");
+}
+
+try {
+    parseRuntimeVideoOptions([
+        "--content",
+    ]);
+
+    throw new Error(
+        "Expected malformed option to fail."
+    );
+} catch (error) {
+    if (
+        !error.message.includes(
+            'Unknown option: "--content".'
+        )
+    ) {
+        throw error;
+    }
+
+    console.log("✅ Malformed option validation");
+}
+
 console.log("");
 console.log(
     "✅ All runtime video option tests passed"
