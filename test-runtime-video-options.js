@@ -10,7 +10,8 @@ function test(name, argv, defaults, expected) {
         JSON.stringify(result.words) === JSON.stringify(expected.words) &&
         result.category === expected.category &&
         result.level === expected.level &&
-        result.help === expected.help;
+        result.help === expected.help &&
+        result.dryRun === expected.dryRun;
 
     console.log(`${passed ? "✅" : "❌"} ${name}`);
 
@@ -37,6 +38,7 @@ test(
         category: null,
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -55,6 +57,7 @@ test(
         category: null,
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -76,6 +79,7 @@ test(
         category: null,
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -94,6 +98,7 @@ test(
         category: null,
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -112,6 +117,7 @@ test(
         category: null,
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -134,6 +140,7 @@ test(
         category: null,
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -152,6 +159,7 @@ test(
         category: null,
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -174,6 +182,7 @@ test(
         category: null,
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -192,6 +201,7 @@ test(
         category: "Transport",
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -210,6 +220,7 @@ test(
         category: null,
         level: "A1",
         help: false,
+        dryRun: false,
     }
 );
 
@@ -231,6 +242,7 @@ test(
         category: "Transport",
         level: "A1",
         help: false,
+        dryRun: false,
     }
 );
 
@@ -252,6 +264,7 @@ test(
         category: "Transport",
         level: null,
         help: false,
+        dryRun: false,
     }
 );
 
@@ -273,6 +286,7 @@ test(
         category: null,
         level: "A1",
         help: false,
+        dryRun: false,
     }
 );
 
@@ -291,6 +305,7 @@ test(
         category: null,
         level: null,
         help: true,
+        dryRun: false,
     }
 );
 
@@ -309,6 +324,7 @@ test(
         category: null,
         level: null,
         help: true,
+        dryRun: false,
     }
 );
 
@@ -333,6 +349,52 @@ test(
         category: "",
         level: "",
         help: true,
+        dryRun: false,
+    }
+);
+
+test(
+    "Dry run",
+    ["--dry-run"],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "default",
+        design: "default",
+        word: null,
+        words: null,
+        category: null,
+        level: null,
+        help: false,
+        dryRun: true,
+    }
+);
+
+test(
+    "Dry run with filters",
+    [
+        "--words=Bicycle,Apple",
+        "--category=Transport",
+        "--level=A1",
+        "--content=quiz",
+        "--design=minimal",
+        "--dry-run",
+    ],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "quiz",
+        design: "minimal",
+        word: null,
+        words: ["Bicycle", "Apple"],
+        category: "Transport",
+        level: "A1",
+        help: false,
+        dryRun: true,
     }
 );
 

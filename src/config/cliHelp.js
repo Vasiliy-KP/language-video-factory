@@ -1,5 +1,5 @@
 export function showCliHelp() {
-    console.log(`
+  console.log(`
 Language Video Factory
 
 Usage:
@@ -53,6 +53,10 @@ Options:
       Example:
         npm start -- --design=minimal
 
+  --dry-run
+      Preview selected words and settings without running
+      the generation pipeline.
+
   --help
   -h
       Show this help message.
@@ -68,5 +72,9 @@ Examples:
   npm start -- --word=Bicycle --content=quiz --design=minimal
 
   npm start -- --words=Bicycle,Apple --content=simple --design=minimal
+
+  npm start -- --category=Transport --dry-run
+
+  npm start -- --words=Bicycle,Apple --content=quiz --design=minimal --dry-run
 `);
 }

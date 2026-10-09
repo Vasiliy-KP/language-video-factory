@@ -146,6 +146,12 @@ if (wordsToProcess.length === 0) {
 
 console.table(wordsToProcess);
 
-const pipeline = new Pipeline();
+if (runtimeVideoOptions.dryRun) {
+    logger.info(
+        "Dry run enabled: Pipeline was not started."
+    );
+} else {
+    const pipeline = new Pipeline();
 
-await pipeline.run(wordsToProcess);
+    await pipeline.run(wordsToProcess);
+}

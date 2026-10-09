@@ -13,9 +13,15 @@ export function parseRuntimeVideoOptions(
         category: defaults.category ?? null,
         level: defaults.level ?? null,
         help: false,
+        dryRun: false,
     };
 
     for (const arg of argv) {
+        if (arg === "--dry-run") {
+            options.dryRun = true;
+            continue;
+        }
+
         if (arg === "--help" || arg === "-h") {
             options.help = true;
             continue;
