@@ -32,7 +32,8 @@
     "test:pipeline-quiz": "node test-pipeline-quiz.js",
     "test:pipeline-normal": "node test-pipeline-normal.js",
     "test:pipeline-simple": "node test-pipeline-simple.js",
-    "test:runtime-video-options": "node test-runtime-video-options.js"
+    "test:runtime-video-options": "node test-runtime-video-options.js",
+    "test:output-path-service": "node test-output-path-service.js"
   },
   "keywords": [],
   "author": "",

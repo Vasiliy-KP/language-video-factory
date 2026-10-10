@@ -151,7 +151,9 @@ export class Pipeline {
             ),
 
             outputPath: OutputPathService.getVideoPath(
-                word.en
+                word.en,
+                config.video.content,
+                config.video.design
             )
         }));
 

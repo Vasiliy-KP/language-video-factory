@@ -16,11 +16,20 @@ export class OutputPathService {
             `${word}.png`
         );
     }
-    static getVideoPath(word) {
+    static getVideoPath(
+        word,
+        content = "default",
+        design = "default"
+    ) {
+        const variantSuffix =
+            content === "default" && design === "default"
+                ? ""
+                : `-${content}-${design}`;
+
         return path.join(
             "output",
             "videos",
-            `${word.toLowerCase()}.mp4`
+            `${word.toLowerCase()}${variantSuffix}.mp4`
         );
     }
 }
