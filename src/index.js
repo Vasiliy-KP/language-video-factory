@@ -146,11 +146,22 @@ if (wordsToProcess.length === 0) {
 
 console.table(wordsToProcess);
 
+console.log("");
+console.log("## Generation Plan");
+console.log("");
+
+logger.info(`Words selected: ${wordsToProcess.length}`);
+logger.info(
+    `Words: ${wordsToProcess.map(word => word.en).join(", ")}`
+);
+logger.info(`Video content: ${config.video.content}`);
+logger.info(`Video design: ${config.video.design}`);
+
 if (runtimeVideoOptions.dryRun) {
-    logger.info(
-        "Dry run enabled: Pipeline was not started."
-    );
+    logger.info("Execution: Preview only. Pipeline will not start.");
 } else {
+    logger.info("Execution: Generation enabled.");
+
     const pipeline = new Pipeline();
 
     await pipeline.run(wordsToProcess);
