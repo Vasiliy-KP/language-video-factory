@@ -57,6 +57,10 @@ Options:
       Preview selected words and settings without running
       the generation pipeline.
 
+  --force
+      Regenerate selected videos even if output files exist.
+      Existing images and audio are reused.
+
   --help
   -h
       Show this help message.
@@ -76,5 +80,7 @@ Examples:
   npm start -- --category=Transport --dry-run
 
   npm start -- --words=Bicycle,Apple --content=quiz --design=minimal --dry-run
+
+  npm start -- --word=Bicycle --content=quiz --design=minimal --force
 `);
 }

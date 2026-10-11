@@ -14,6 +14,7 @@ export function parseRuntimeVideoOptions(
         level: defaults.level ?? null,
         help: false,
         dryRun: false,
+        force: false,
     };
 
     for (const arg of argv) {
@@ -24,6 +25,11 @@ export function parseRuntimeVideoOptions(
 
         if (arg === "--help" || arg === "-h") {
             options.help = true;
+            continue;
+        }
+
+        if (arg === "--force") {
+            options.force = true;
             continue;
         }
 

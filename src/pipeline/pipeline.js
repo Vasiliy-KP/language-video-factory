@@ -12,7 +12,9 @@ import { languages } from "../config/languages.js";
 import { config } from "../config/config.js";
 
 export class Pipeline {
-    constructor() {
+    constructor({ force = false } = {}) {
+        this.force = force;
+
         this.tts = new EdgeTTSService();
         this.audio = new AudioService();
         this.image = new CloudflareImageService();
@@ -322,12 +324,15 @@ export class Pipeline {
         audioPaths,
         outputPath,
     }) {
-        if (await FileSystem.exists(outputPath)) {
-            console.log(
-                `⏭ Video: ${word.en} — already exists`
-            );
+        const outputExists = await FileSystem.exists(outputPath);
 
+        if (outputExists && !this.force) {
+            console.log(`⏭ Video: ${word.en} — already exists`);
             return "skipped";
+        }
+
+        if (outputExists && this.force) {
+            console.log(`🔄 Video: ${word.en} — force regeneration`);
         }
 
         for (

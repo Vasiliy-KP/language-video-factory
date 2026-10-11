@@ -11,7 +11,8 @@ function test(name, argv, defaults, expected) {
         result.category === expected.category &&
         result.level === expected.level &&
         result.help === expected.help &&
-        result.dryRun === expected.dryRun;
+        result.dryRun === expected.dryRun &&
+        result.force === (expected.force ?? false);
 
     console.log(`${passed ? "✅" : "❌"} ${name}`);
 
@@ -395,6 +396,51 @@ test(
         level: "A1",
         help: false,
         dryRun: true,
+    }
+);
+
+test(
+    "Force mode",
+    ["--force"],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "default",
+        design: "default",
+        word: null,
+        words: null,
+        category: null,
+        level: null,
+        help: false,
+        dryRun: false,
+        force: true,
+    }
+);
+
+test(
+    "Force with quiz and filters",
+    [
+        "--word=Bicycle",
+        "--content=quiz",
+        "--design=minimal",
+        "--force",
+    ],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "quiz",
+        design: "minimal",
+        word: "Bicycle",
+        words: null,
+        category: null,
+        level: null,
+        help: false,
+        dryRun: false,
+        force: true,
     }
 );
 

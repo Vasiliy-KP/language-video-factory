@@ -162,7 +162,9 @@ if (runtimeVideoOptions.dryRun) {
 } else {
     logger.info("Execution: Generation enabled.");
 
-    const pipeline = new Pipeline();
+    const pipeline = new Pipeline({
+        force: runtimeVideoOptions.force,
+    });
 
     await pipeline.run(wordsToProcess);
 }
