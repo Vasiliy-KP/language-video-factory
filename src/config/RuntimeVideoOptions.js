@@ -95,6 +95,7 @@ export function parseRuntimeVideoOptions(
     validateCategory(options.category);
     validateLevel(options.level);
     validateWordOptionsCombination(options);
+    validateExecutionOptions(options);
 
     return options;
 }
@@ -155,6 +156,14 @@ function validateWordOptionsCombination(options) {
     if (options.word !== null && options.words !== null) {
         throw new Error(
             "Use either --word= or --words=, not both."
+        );
+    }
+}
+
+function validateExecutionOptions(options) {
+    if (options.dryRun && options.force) {
+        throw new Error(
+            'Invalid options: "--dry-run" cannot be used with "--force".'
         );
     }
 }

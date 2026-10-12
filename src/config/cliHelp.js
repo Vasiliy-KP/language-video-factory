@@ -61,6 +61,9 @@ Options:
       Regenerate selected videos even if output files exist.
       Existing images and audio are reused.
 
+  Note:
+      --dry-run and --force cannot be used together.
+
   --help
   -h
       Show this help message.

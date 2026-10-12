@@ -541,6 +541,27 @@ try {
     console.log("✅ Malformed option validation");
 }
 
+try {
+    parseRuntimeVideoOptions([
+        "--dry-run",
+        "--force",
+    ]);
+
+    throw new Error(
+        "Expected --dry-run + --force combination to fail."
+    );
+} catch (error) {
+    if (
+        !error.message.includes(
+            'Invalid options: "--dry-run" cannot be used with "--force".'
+        )
+    ) {
+        throw error;
+    }
+
+    console.log("✅ Dry run + force conflict");
+}
+
 console.log("");
 console.log(
     "✅ All runtime video option tests passed"
