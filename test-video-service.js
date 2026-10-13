@@ -13,6 +13,7 @@ const word = {
     category: "Transport",
     uk: "велосипед",
     en: "Bicycle",
+    pl: "Rower",
     fr: "Vélo",
     de: "Fahrrad",
     level: "A1",

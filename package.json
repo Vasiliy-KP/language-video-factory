@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "node src/test.js",
+    "test:all": "npm run test:video-subtitles && npm run test:video-template && npm run test:video-render && npm run test:flags && npm run test:video-dynamic && npm run test:video-service && npm run test:excel-reader && npm run test:responsive-layout && npm run test:design-config && npm run test:video-minimal && npm run test:pipeline-design && npm run test:content-config && npm run test:video-simple && npm run test:video-quiz && npm run test:quiz-timeline && npm run test:quiz-audio && npm run test:quiz-video && npm run test:quiz-service && npm run test:pipeline-quiz && npm run test:pipeline-normal && npm run test:pipeline-simple && npm run test:runtime-video-options && npm run test:output-path-service",
     "test:video-subtitles": "node test-video-subtitles.js",
     "test:video-template": "node test-video-template.js",
     "test:video-render": "node test-video-render.js",

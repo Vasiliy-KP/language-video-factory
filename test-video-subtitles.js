@@ -3,16 +3,22 @@ import { SubtitleService } from "./src/services/video/SubtitleService.js";
 import { AudioService } from "./src/services/audio/AudioService.js";
 import { OutputPathService } from "./src/services/OutputPathService.js";
 import { languages } from "./src/config/languages.js";
+import { TimelineService } from "./src/services/video/TimelineService.js";
 
 const videoService = new VideoService();
 const subtitleService = new SubtitleService();
 const audioService = new AudioService();
 
 const word = {
-    en: "Bicycle",
+    id: 1,
+    category: "Transport",
     uk: "велосипед",
+    en: "Bicycle",
+    pl: "Rower",
     fr: "Vélo",
     de: "Fahrrad",
+    imagePrompt: "modern bicycle isolated on white background",
+    level: "A1",
 };
 
 const audioPaths = languages.map((language) =>
@@ -26,32 +32,13 @@ const mergedAudioPath = "output/temp/test-bicycle-merged.mp3";
 const subtitlePath = "output/temp/test-bicycle.ass";
 const outputPath = "output/videos/test-bicycle-subtitles.mp4";
 
-const timeline = [
-    {
-        language: "uk",
-        text: "велосипед",
-        start: 0,
-        end: 1.824,
-    },
-    {
-        language: "en",
-        text: "Bicycle",
-        start: 1.824,
-        end: 2.952,
-    },
-    {
-        language: "fr",
-        text: "Vélo",
-        start: 2.952,
-        end: 4.728,
-    },
-    {
-        language: "de",
-        text: "Fahrrad",
-        start: 4.728,
-        end: 6.504,
-    },
-];
+const timelineService = new TimelineService();
+
+const timeline = await timelineService.createForWord(
+    word,
+    languages,
+    OutputPathService
+);
 
 await audioService.merge(
     audioPaths,
@@ -64,10 +51,11 @@ await subtitleService.create(
 );
 
 await videoService.create(
+    word,
     OutputPathService.getImagePath("bicycle"),
     mergedAudioPath,
-    outputPath,
-    subtitlePath
+    timeline,
+    outputPath
 );
 
 console.log(`✅ Video created: ${outputPath}`);

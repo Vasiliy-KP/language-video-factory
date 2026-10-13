@@ -9,7 +9,12 @@ import { VideoTemplateService } from "./src/services/video/VideoTemplateService.
 const execFileAsync = promisify(execFile);
 
 const templateService = new VideoTemplateService();
-const template = templateService.getBicycleTemplate();
+
+const template = templateService.getWordTemplate(
+    5,
+    "default",
+    "default"
+);
 
 const imagePath = path.resolve(
     "output/images/bicycle.png"
@@ -27,8 +32,8 @@ const fontPath = templateService
 const filters = [
     `scale=${template.image.width}:${template.image.height}:force_original_aspect_ratio=decrease`,
     `pad=${template.image.width}:${template.image.height}:(ow-iw)/2:(oh-ih)/2`,
-    `format=yuv420p`,
-    `drawtext=fontfile='${fontPath}':text='${template.title}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=130`,
+    "format=yuv420p",
+    `drawtext=fontfile='${fontPath}':text='${template.title.text}':fontcolor=white:fontsize=${template.title.fontSize}:x=(w-text_w)/2:y=${template.title.y}`,
 ].join(",");
 
 const args = [
