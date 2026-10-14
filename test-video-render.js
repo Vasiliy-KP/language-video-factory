@@ -11,6 +11,7 @@ const word = {
     en: "Bicycle",
     fr: "Vélo",
     de: "Fahrrad",
+    es: "Bicicleta",
     level: "A1",
 };
 

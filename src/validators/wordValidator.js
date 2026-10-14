@@ -10,6 +10,7 @@ export class WordValidator {
             "pl",
             "fr",
             "de",
+            "es",
             "imagePrompt",
             "level",
         ];
@@ -19,7 +20,11 @@ export class WordValidator {
         for (const field of requiredFields) {
             const value = word[field];
 
-            if (value === null || value === undefined || value === "") {
+            if (
+                value === null ||
+                value === undefined ||
+                value === ""
+            ) {
                 errors.push(`Поле "${field}" не заповнене`);
             }
         }

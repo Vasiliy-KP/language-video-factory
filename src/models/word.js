@@ -7,6 +7,7 @@ export class Word {
         this.pl = data.pl;
         this.fr = data.fr;
         this.de = data.de;
+        this.es = data.es;
         this.imagePrompt = data.imagePrompt;
         this.level = data.level;
     }

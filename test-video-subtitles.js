@@ -17,6 +17,7 @@ const word = {
     pl: "Rower",
     fr: "Vélo",
     de: "Fahrrad",
+    es: "Bicicleta",
     imagePrompt: "modern bicycle isolated on white background",
     level: "A1",
 };

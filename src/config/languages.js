@@ -39,4 +39,12 @@ export const languages = [
         flag: "de.png",
         primary: false,
     },
+    {
+        code: "es",
+        field: "es",
+        suffix: "es",
+        label: "ES",
+        flag: "es.png",
+        primary: false,
+    },
 ];
