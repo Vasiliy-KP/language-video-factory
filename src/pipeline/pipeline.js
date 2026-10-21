@@ -5,6 +5,8 @@ import { CloudflareImageService } from "../services/image/CloudflareImageService
 import { VideoService } from "../services/video/VideoService.js";
 import { QuizVideoService } from "../services/video/QuizVideoService.js";
 import { OutputPathService } from "../services/OutputPathService.js";
+import { PublishingMetadataService } from "../services/PublishingMetadataService.js";
+import { PublishingMetadataWriter } from "../services/PublishingMetadataWriter.js";
 import { TimelineService } from "../services/video/TimelineService.js";
 import { SubtitleService } from "../services/video/SubtitleService.js";
 import { FileSystem } from "../utils/FileSystem.js";
@@ -187,9 +189,37 @@ export class Pipeline {
             }
         }
 
+
         videoProgress.showSummary();
 
+        // =========================
+        // PUBLISHING METADATA
+        // =========================
+
+        console.log("\n## Publishing metadata");
+
+        for (const word of words) {
+            try {
+                const metadata =
+                    PublishingMetadataService.create(word);
+
+                const outputPath =
+                    await PublishingMetadataWriter.save(metadata);
+
+                console.log(
+                    `✅ Metadata: ${word.en} — saved to ${outputPath}`
+                );
+            } catch (error) {
+                console.error(
+                    `❌ Metadata: ${word.en} — generation failed`
+                );
+
+                console.error(error.message);
+            }
+        }
+
         console.log("\n## Pipeline completed");
+
     }
 
     // =========================
