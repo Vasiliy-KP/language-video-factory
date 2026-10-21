@@ -7,6 +7,7 @@ import { QuizVideoService } from "../services/video/QuizVideoService.js";
 import { OutputPathService } from "../services/OutputPathService.js";
 import { PublishingMetadataService } from "../services/PublishingMetadataService.js";
 import { PublishingMetadataWriter } from "../services/PublishingMetadataWriter.js";
+import { PublishingPackageWriter } from "../services/PublishingPackageWriter.js";
 import { TimelineService } from "../services/video/TimelineService.js";
 import { SubtitleService } from "../services/video/SubtitleService.js";
 import { FileSystem } from "../utils/FileSystem.js";
@@ -198,10 +199,13 @@ export class Pipeline {
 
         console.log("\n## Publishing metadata");
 
+
         for (const word of words) {
+            let metadata;
+
+            // 1. Генеруємо та зберігаємо JSON з метаданими.
             try {
-                const metadata =
-                    PublishingMetadataService.create(word);
+                metadata = PublishingMetadataService.create(word);
 
                 const outputPath =
                     await PublishingMetadataWriter.save(metadata);
@@ -215,8 +219,28 @@ export class Pipeline {
                 );
 
                 console.error(error.message);
+
+                // Без метаданих не можна сформувати пакет публікації.
+                continue;
+            }
+
+            // 2. Створюємо готові текстові файли.
+            try {
+                const result =
+                    await PublishingPackageWriter.save(metadata);
+
+                console.log(
+                    `✅ Publishing package: ${word.en} — saved to ${result.directory}`
+                );
+            } catch (error) {
+                console.error(
+                    `❌ Publishing package: ${word.en} — save failed`
+                );
+
+                console.error(error.message);
             }
         }
+
 
         console.log("\n## Pipeline completed");
 
