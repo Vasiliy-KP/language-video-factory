@@ -15,8 +15,10 @@ import { languages } from "../config/languages.js";
 import { config } from "../config/config.js";
 
 export class Pipeline {
-    constructor({ force = false } = {}) {
+    constructor({ force = false,
+        publishingOutputDirectory = "output/publishing", } = {}) {
         this.force = force;
+        this.publishingOutputDirectory = publishingOutputDirectory;
 
         this.tts = new EdgeTTSService();
         this.audio = new AudioService();
@@ -202,16 +204,17 @@ export class Pipeline {
 
         for (const word of words) {
             let metadata;
+            let metadataPath;
 
             // 1. Генеруємо та зберігаємо JSON з метаданими.
             try {
                 metadata = PublishingMetadataService.create(word);
 
-                const outputPath =
+                metadataPath =
                     await PublishingMetadataWriter.save(metadata);
 
                 console.log(
-                    `✅ Metadata: ${word.en} — saved to ${outputPath}`
+                    `✅ Metadata: ${word.en} — saved to ${metadataPath}`
                 );
             } catch (error) {
                 console.error(
@@ -226,8 +229,22 @@ export class Pipeline {
 
             // 2. Створюємо готові текстові файли.
             try {
-                const result =
-                    await PublishingPackageWriter.save(metadata);
+
+                const videoPath = OutputPathService.getVideoPath(
+                    word.en,
+                    config.video.content,
+                    config.video.design
+                );
+
+                const result = await PublishingPackageWriter.save(
+                    metadata,
+                    this.publishingOutputDirectory,
+                    {
+                        videoPath,
+                        metadataPath,
+                    }
+                );
+
 
                 console.log(
                     `✅ Publishing package: ${word.en} — saved to ${result.directory}`

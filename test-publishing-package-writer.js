@@ -3,6 +3,7 @@ import {
     mkdtemp,
     readFile,
     rm,
+    writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -74,6 +75,91 @@ try {
     );
 
     console.log("✅ Publishing files created");
+
+
+    // 1. Перевіряємо маніфест без готових відео та JSON.
+    assert.ok(result.manifestPath);
+
+    const initialManifest = JSON.parse(
+        await readFile(result.manifestPath, "utf8")
+    );
+
+    assert.equal(initialManifest.schemaVersion, 1);
+    assert.equal(initialManifest.word, "Bicycle");
+    assert.equal(initialManifest.status, "metadata_ready");
+
+    assert.equal(initialManifest.assets.video.exists, false);
+    assert.equal(initialManifest.assets.metadata.exists, false);
+
+    assert.equal(
+        initialManifest.platforms.tiktok.file,
+        "tiktok.txt"
+    );
+
+    assert.equal(
+        initialManifest.platforms.instagram.file,
+        "instagram.txt"
+    );
+
+    assert.equal(
+        initialManifest.platforms.youtubeShorts.file,
+        "youtube-shorts.txt"
+    );
+
+    console.log("✅ Metadata-only manifest verified");
+
+    // 2. Створюємо тимчасові файли для імітації готових матеріалів.
+    const videoPath = path.join(
+        tempDirectory,
+        "Bicycle.mp4"
+    );
+
+    const metadataPath = path.join(
+        tempDirectory,
+        "Bicycle.json"
+    );
+
+    await writeFile(videoPath, "test video", "utf8");
+    await writeFile(
+        metadataPath,
+        JSON.stringify(metadata),
+        "utf8"
+    );
+
+    // 3. Повторно створюємо пакет із наявними файлами.
+    const completeResult = await PublishingPackageWriter.save(
+        metadata,
+        tempDirectory,
+        {
+            videoPath,
+            metadataPath,
+        }
+    );
+
+    const completeManifest = JSON.parse(
+        await readFile(completeResult.manifestPath, "utf8")
+    );
+
+    assert.equal(
+        completeManifest.status,
+        "ready_for_review"
+    );
+
+    assert.equal(completeManifest.assets.video.exists, true);
+    assert.equal(completeManifest.assets.metadata.exists, true);
+
+    assert.equal(
+        completeManifest.assets.video.path,
+        videoPath
+    );
+
+    assert.equal(
+        completeManifest.assets.metadata.path,
+        metadataPath
+    );
+
+    console.log("✅ Ready-for-review manifest verified");
+
 
     // Перевіряємо TikTok.
     const tiktok = await readFile(

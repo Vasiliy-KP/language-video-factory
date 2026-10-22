@@ -78,7 +78,9 @@ console.log(
 console.log("");
 
 try {
-    const pipeline = new Pipeline();
+    const pipeline = new Pipeline({
+        publishingOutputDirectory: "output/test-publishing/simple",
+    });
 
     await pipeline.run([
         bicycle
