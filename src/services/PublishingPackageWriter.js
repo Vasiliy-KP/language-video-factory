@@ -26,6 +26,19 @@ async function fileExists(filePath) {
     }
 }
 
+
+function toProjectRelativePath(filePath) {
+    if (!filePath) {
+        return null;
+    }
+
+    return path.relative(
+        process.cwd(),
+        path.resolve(filePath)
+    );
+}
+
+
 export class PublishingPackageWriter {
     static async save(
         metadata,
@@ -143,11 +156,11 @@ export class PublishingPackageWriter {
 
             assets: {
                 video: {
-                    path: normalizedVideoPath,
+                    path: toProjectRelativePath(normalizedVideoPath),
                     exists: videoExists,
                 },
                 metadata: {
-                    path: normalizedMetadataPath,
+                    path: toProjectRelativePath(normalizedMetadataPath),
                     exists: metadataExists,
                 },
             },

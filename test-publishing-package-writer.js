@@ -5,7 +5,7 @@ import {
     rm,
     writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
+
 import path from "node:path";
 
 import { PublishingPackageWriter } from
@@ -48,7 +48,10 @@ try {
     // Створюємо тимчасову папку для тесту.
     // Реальні файли проєкту не змінюються.
     tempDirectory = await mkdtemp(
-        path.join(tmpdir(), "publishing-package-writer-")
+        path.join(
+            process.cwd(),
+            ".publishing-package-writer-"
+        )
     );
 
     console.log("▶ Testing PublishingPackageWriter...");
@@ -148,15 +151,27 @@ try {
     assert.equal(completeManifest.assets.video.exists, true);
     assert.equal(completeManifest.assets.metadata.exists, true);
 
+
     assert.equal(
-        completeManifest.assets.video.path,
-        videoPath
+        path.resolve(completeManifest.assets.video.path),
+        path.resolve(videoPath)
     );
 
     assert.equal(
-        completeManifest.assets.metadata.path,
-        metadataPath
+        path.resolve(completeManifest.assets.metadata.path),
+        path.resolve(metadataPath)
     );
+
+    assert.equal(
+        path.isAbsolute(completeManifest.assets.video.path),
+        false
+    );
+
+    assert.equal(
+        path.isAbsolute(completeManifest.assets.metadata.path),
+        false
+    );
+
 
     console.log("✅ Ready-for-review manifest verified");
 
