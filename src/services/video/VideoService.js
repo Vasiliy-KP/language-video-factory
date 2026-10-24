@@ -77,6 +77,12 @@ export class VideoService {
                 "-c:a",
                 "aac",
 
+                "-b:a",
+                "128k",
+
+                "-ar",
+                "48000",
+
                 "-shortest",
 
                 "-movflags",

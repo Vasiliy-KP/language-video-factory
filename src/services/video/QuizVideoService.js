@@ -147,6 +147,9 @@ export class QuizVideoService {
             "-b:a",
             "128k",
 
+            "-ar",
+            "48000",
+
             "-shortest",
 
             "-movflags",

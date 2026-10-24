@@ -8,6 +8,7 @@ import { OutputPathService } from "../services/OutputPathService.js";
 import { PublishingMetadataService } from "../services/PublishingMetadataService.js";
 import { PublishingMetadataWriter } from "../services/PublishingMetadataWriter.js";
 import { PublishingPackageWriter } from "../services/PublishingPackageWriter.js";
+import { PublishingReadinessService } from "../services/PublishingReadinessService.js";
 import { TimelineService } from "../services/video/TimelineService.js";
 import { SubtitleService } from "../services/video/SubtitleService.js";
 import { FileSystem } from "../utils/FileSystem.js";
@@ -249,6 +250,44 @@ export class Pipeline {
                 console.log(
                     `✅ Publishing package: ${word.en} — saved to ${result.directory}`
                 );
+                try {
+                    const readinessReport =
+                        await PublishingReadinessService.check(result.directory);
+
+                    const statusIcon =
+                        readinessReport.status === "ready_for_review" ? "✅" : "⚠️";
+
+                    console.log(
+                        `${statusIcon} Publishing readiness: ${word.en} — ${readinessReport.status}`
+                    );
+
+                    for (const [platform, platformReport] of Object.entries(
+                        readinessReport.platforms
+                    )) {
+                        const platformIcon =
+                            platformReport.status === "ready_for_review" ? "✅" : "❌";
+
+                        console.log(
+                            `   ${platformIcon} ${platform}: ${platformReport.status}`
+                        );
+                    }
+
+                    for (const error of readinessReport.errors) {
+                        const target = error.platform ? `${error.platform}: ` : "";
+
+                        console.error(`   ❌ ${target}${error.message}`);
+                    }
+
+                    for (const warning of readinessReport.warnings) {
+                        console.warn(`   ⚠️ ${warning.message}`);
+                    }
+                } catch (error) {
+                    console.error(
+                        `⚠️ Publishing readiness: ${word.en} — check failed`
+                    );
+
+                    console.error(error.message);
+                }
             } catch (error) {
                 console.error(
                     `❌ Publishing package: ${word.en} — save failed`
