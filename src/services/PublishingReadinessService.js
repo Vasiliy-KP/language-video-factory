@@ -1,5 +1,11 @@
 
-import { access, readFile, stat } from "node:fs/promises";
+import {
+    access,
+    mkdir,
+    readFile,
+    stat,
+    writeFile,
+} from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
@@ -363,10 +369,20 @@ export class PublishingReadinessService {
             report.errors.push({ code, message });
         };
 
-        const finish = () => {
+        const finish = async () => {
             report.status = report.errors.length
                 ? "needs_fixes"
                 : "ready_for_review";
+
+            await mkdir(directory, { recursive: true });
+
+            const reportPath = path.join(directory, "readiness.json");
+
+            await writeFile(
+                reportPath,
+                `${JSON.stringify(report, null, 2)}\n`,
+                "utf8"
+            );
 
             return report;
         };

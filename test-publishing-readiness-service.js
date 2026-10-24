@@ -145,6 +145,19 @@ try {
         );
     }
 
+    const readinessPath = path.join(
+        packagePath,
+        "readiness.json"
+    );
+
+    const savedReadiness = JSON.parse(
+        await readFile(readinessPath, "utf8")
+    );
+
+    assert.deepEqual(savedReadiness, readyReport);
+
+    console.log("✅ readiness.json was saved and verified");
+
     console.log("✅ Valid package passed all platform checks");
 
     // 2. Імітуємо відео з непідтримуваним кодеком,
