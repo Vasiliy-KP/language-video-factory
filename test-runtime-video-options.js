@@ -12,7 +12,8 @@ function test(name, argv, defaults, expected) {
         result.level === expected.level &&
         result.help === expected.help &&
         result.dryRun === expected.dryRun &&
-        result.force === (expected.force ?? false);
+        result.force === (expected.force ?? false) &&
+        result.publishingPreview === (expected.publishingPreview ?? false);
 
     console.log(`${passed ? "✅" : "❌"} ${name}`);
 
@@ -40,6 +41,27 @@ test(
         level: null,
         help: false,
         dryRun: false,
+    }
+);
+
+test(
+    "Publishing preview",
+    ["--publishing-preview"],
+    {
+        content: "default",
+        design: "default",
+    },
+    {
+        content: "default",
+        design: "default",
+        word: null,
+        words: null,
+        category: null,
+        level: null,
+        help: false,
+        dryRun: false,
+        force: false,
+        publishingPreview: true,
     }
 );
 
@@ -560,6 +582,29 @@ try {
     }
 
     console.log("✅ Dry run + force conflict");
+}
+
+try {
+    parseRuntimeVideoOptions([
+        "--publishing-preview",
+        "--word=Bicycle",
+    ]);
+
+    throw new Error(
+        "Expected publishing preview + --word to fail."
+    );
+} catch (error) {
+    if (
+        !error.message.includes(
+            '"--publishing-preview" cannot be combined with generation filters'
+        )
+    ) {
+        throw error;
+    }
+
+    console.log(
+        "✅ Publishing preview + generation filter conflict"
+    );
 }
 
 console.log("");

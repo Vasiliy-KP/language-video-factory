@@ -53,6 +53,11 @@ Options:
       Example:
         npm start -- --design=minimal
 
+  --publishing-preview
+      Recheck publishing packages and preview the queue.
+      Updates readiness.json and queue.json.
+      Does not generate videos or publish to platforms.
+
   --dry-run
       Preview selected words and settings without running
       the generation pipeline.
@@ -85,5 +90,7 @@ Examples:
   npm start -- --words=Bicycle,Apple --content=quiz --design=minimal --dry-run
 
   npm start -- --word=Bicycle --content=quiz --design=minimal --force
+
+  npm start -- --publishing-preview
 `);
 }

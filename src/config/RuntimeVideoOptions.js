@@ -15,9 +15,15 @@ export function parseRuntimeVideoOptions(
         help: false,
         dryRun: false,
         force: false,
+        publishingPreview: false,
     };
 
     for (const arg of argv) {
+        if (arg === "--publishing-preview") {
+            options.publishingPreview = true;
+            continue;
+        }
+
         if (arg === "--dry-run") {
             options.dryRun = true;
             continue;
@@ -96,6 +102,7 @@ export function parseRuntimeVideoOptions(
     validateLevel(options.level);
     validateWordOptionsCombination(options);
     validateExecutionOptions(options);
+    validatePublishingPreviewOptions(options, defaults);
 
     return options;
 }
@@ -164,6 +171,28 @@ function validateExecutionOptions(options) {
     if (options.dryRun && options.force) {
         throw new Error(
             'Invalid options: "--dry-run" cannot be used with "--force".'
+        );
+    }
+}
+
+function validatePublishingPreviewOptions(options, defaults) {
+    if (!options.publishingPreview) {
+        return;
+    }
+
+    const hasConflictingOptions =
+        options.word !== null ||
+        options.words !== null ||
+        options.category !== null ||
+        options.level !== null ||
+        options.dryRun ||
+        options.force ||
+        options.content !== (defaults.content ?? "default") ||
+        options.design !== (defaults.design ?? "default");
+
+    if (hasConflictingOptions) {
+        throw new Error(
+            'Invalid options: "--publishing-preview" cannot be combined with generation filters, "--content", "--design", "--dry-run" or "--force".'
         );
     }
 }

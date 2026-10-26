@@ -9,6 +9,10 @@ import { ExcelReader } from "./data/ExcelReader.js";
 import { WordValidator } from "./validators/wordValidator.js";
 import { Pipeline } from "./pipeline/Pipeline.js";
 
+import {
+    PublishingQueueService,
+} from "./services/PublishingQueueService.js";
+
 async function main() {
     try {
         console.clear();
@@ -23,6 +27,57 @@ async function main() {
 
         if (runtimeVideoOptions.help) {
             showCliHelp();
+            return;
+        }
+
+        if (runtimeVideoOptions.publishingPreview) {
+            const queue = await PublishingQueueService.build();
+
+            console.log("\n## Publishing preview");
+
+            if (queue.items.length === 0) {
+                console.log("No packages are ready for review.");
+            } else {
+                console.log(`\nReady for review: ${queue.items.length}`);
+
+                for (const item of queue.items) {
+                    console.log(
+                        `\n✅ ${item.word} — ${item.status}`
+                    );
+
+                    console.log(
+                        `   Platforms: ${item.platforms.join(", ")}`
+                    );
+
+                    console.log(`   Video: ${item.videoPath}`);
+                    console.log(`   Metadata: ${item.metadataPath}`);
+                }
+            }
+
+            if (queue.excluded.length > 0) {
+                console.log(
+                    `\n## Excluded packages: ${queue.excluded.length}`
+                );
+
+                for (const item of queue.excluded) {
+                    console.log(
+                        `\n⚠️ ${item.word} — ${item.status}`
+                    );
+
+                    for (const error of item.errors ?? []) {
+                        console.log(
+                            `   ❌ ${error.message ?? error.code ?? "Unknown error"}`
+                        );
+                    }
+
+                    for (const error of item.platformErrors ?? []) {
+                        console.log(
+                            `   ❌ ${error.platform}: ${error.message}`
+                        );
+                    }
+                }
+            }
+
             return;
         }
 
