@@ -202,6 +202,17 @@ export class Pipeline {
 
         console.log("\n## Publishing metadata");
 
+        const publishingSummary = {
+            checked: 0,
+            readyForReview: 0,
+            needsFixes: 0,
+            checkFailed: 0,
+            metadataFailed: 0,
+            packageFailed: 0,
+            wordsNeedingFixes: [],
+            wordsWithCheckFailures: [],
+            platformErrors: {},
+        };
 
         for (const word of words) {
             let metadata;
@@ -218,6 +229,7 @@ export class Pipeline {
                     `✅ Metadata: ${word.en} — saved to ${metadataPath}`
                 );
             } catch (error) {
+                publishingSummary.metadataFailed++;
                 console.error(
                     `❌ Metadata: ${word.en} — generation failed`
                 );
@@ -254,6 +266,15 @@ export class Pipeline {
                     const readinessReport =
                         await PublishingReadinessService.check(result.directory);
 
+                    publishingSummary.checked++;
+
+                    if (readinessReport.status === "ready_for_review") {
+                        publishingSummary.readyForReview++;
+                    } else {
+                        publishingSummary.needsFixes++;
+                        publishingSummary.wordsNeedingFixes.push(word.en);
+                    }
+
                     const statusIcon =
                         readinessReport.status === "ready_for_review" ? "✅" : "⚠️";
 
@@ -264,6 +285,12 @@ export class Pipeline {
                     for (const [platform, platformReport] of Object.entries(
                         readinessReport.platforms
                     )) {
+                        if (platformReport.errors.length > 0) {
+                            publishingSummary.platformErrors[platform] =
+                                (publishingSummary.platformErrors[platform] ?? 0) +
+                                platformReport.errors.length;
+                        }
+
                         const platformIcon =
                             platformReport.status === "ready_for_review" ? "✅" : "❌";
 
@@ -282,6 +309,9 @@ export class Pipeline {
                         console.warn(`   ⚠️ ${warning.message}`);
                     }
                 } catch (error) {
+                    publishingSummary.checkFailed++;
+                    publishingSummary.wordsWithCheckFailures.push(word.en);
+
                     console.error(
                         `⚠️ Publishing readiness: ${word.en} — check failed`
                     );
@@ -289,6 +319,8 @@ export class Pipeline {
                     console.error(error.message);
                 }
             } catch (error) {
+                publishingSummary.packageFailed++;
+
                 console.error(
                     `❌ Publishing package: ${word.en} — save failed`
                 );
@@ -297,6 +329,52 @@ export class Pipeline {
             }
         }
 
+        console.log("\n## Publishing readiness summary");
+
+        console.log(
+            `Checks completed: ${publishingSummary.checked}`
+        );
+        console.log(
+            `Ready for review: ${publishingSummary.readyForReview}`
+        );
+        console.log(
+            `Needs fixes: ${publishingSummary.needsFixes}`
+        );
+        console.log(
+            `Readiness check failed: ${publishingSummary.checkFailed}`
+        );
+        console.log(
+            `Metadata generation failed: ${publishingSummary.metadataFailed}`
+        );
+        console.log(
+            `Package creation failed: ${publishingSummary.packageFailed}`
+        );
+
+        if (publishingSummary.wordsNeedingFixes.length > 0) {
+            console.log(
+                `Words needing fixes: ${publishingSummary.wordsNeedingFixes.join(", ")}`
+            );
+        }
+
+        if (publishingSummary.wordsWithCheckFailures.length > 0) {
+            console.log(
+                `Words with check failures: ${publishingSummary.wordsWithCheckFailures.join(", ")}`
+            );
+        }
+
+        const platformErrors = Object.entries(
+            publishingSummary.platformErrors
+        );
+
+        if (platformErrors.length === 0) {
+            console.log("Platform errors: none");
+        } else {
+            console.log("Platform errors:");
+
+            for (const [platform, count] of platformErrors) {
+                console.log(`  ${platform}: ${count}`);
+            }
+        }
 
         console.log("\n## Pipeline completed");
 
