@@ -1,6 +1,7 @@
 import path from "path";
 import "dotenv/config";
 
+import { readFile } from "node:fs/promises";
 import { config } from "./config/config.js";
 import { parseRuntimeVideoOptions } from "./config/RuntimeVideoOptions.js";
 import { showCliHelp } from "./config/cliHelp.js";
@@ -41,16 +42,69 @@ async function main() {
                 console.log(`\nReady for review: ${queue.items.length}`);
 
                 for (const item of queue.items) {
-                    console.log(
-                        `\n✅ ${item.word} — ${item.status}`
-                    );
-
-                    console.log(
-                        `   Platforms: ${item.platforms.join(", ")}`
-                    );
-
+                    console.log(`\n✅ ${item.word} — ${item.status}`);
+                    console.log(`   Platforms: ${item.platforms.join(", ")}`);
                     console.log(`   Video: ${item.videoPath}`);
                     console.log(`   Metadata: ${item.metadataPath}`);
+
+                    try {
+                        const metadata = JSON.parse(
+                            await readFile(item.metadataPath, "utf8")
+                        );
+
+                        const platformLabels = {
+                            tiktok: "TikTok",
+                            instagram: "Instagram",
+                            youtubeShorts: "YouTube Shorts",
+                        };
+
+                        for (const platform of item.platforms) {
+                            const platformData = metadata.platforms?.[platform];
+
+                            console.log(
+                                `\n   --- ${platformLabels[platform] ?? platform} ---`
+                            );
+
+                            if (!platformData) {
+                                console.log("   ⚠️ Platform metadata not found.");
+                                continue;
+                            }
+
+                            if (platform === "youtubeShorts") {
+                                console.log(`   Title: ${platformData.title ?? "(missing)"}`);
+                                console.log("   Description:");
+
+                                console.log(
+                                    (platformData.description ?? "(missing)")
+                                        .split("\n")
+                                        .map((line) => `      ${line}`)
+                                        .join("\n")
+                                );
+                            } else {
+                                console.log("   Caption:");
+
+                                console.log(
+                                    (platformData.caption ?? "(missing)")
+                                        .split("\n")
+                                        .map((line) => `      ${line}`)
+                                        .join("\n")
+                                );
+                            }
+
+                            if (
+                                Array.isArray(platformData.hashtags) &&
+                                platformData.hashtags.length > 0
+                            ) {
+                                console.log(
+                                    `   Hashtags: ${platformData.hashtags.join(" ")}`
+                                );
+                            }
+                        }
+                    } catch (error) {
+                        console.log(
+                            `   ⚠️ Could not read metadata: ${error.message}`
+                        );
+                    }
                 }
             }
 
