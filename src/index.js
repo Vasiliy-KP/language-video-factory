@@ -13,6 +13,9 @@ import { Pipeline } from "./pipeline/Pipeline.js";
 import {
     PublishingQueueService,
 } from "./services/PublishingQueueService.js";
+import {
+    PublicationTrackingService,
+} from "./services/PublicationTrackingService.js";
 
 async function main() {
     try {
@@ -47,6 +50,20 @@ async function main() {
                     console.log(`   Video: ${item.videoPath}`);
                     console.log(`   Metadata: ${item.metadataPath}`);
 
+                    let publicationTracking = null;
+
+                    try {
+                        publicationTracking =
+                            await PublicationTrackingService.getForWord({
+                                word: item.word,
+                                platforms: item.platforms,
+                            });
+                    } catch (error) {
+                        console.log(
+                            `   ⚠️ Could not read publication status: ${error.message}`
+                        );
+                    }
+
                     try {
                         const metadata = JSON.parse(
                             await readFile(item.metadataPath, "utf8")
@@ -64,6 +81,24 @@ async function main() {
                             console.log(
                                 `\n   --- ${platformLabels[platform] ?? platform} ---`
                             );
+
+                            const publicationStatus =
+                                publicationTracking?.platforms[platform];
+
+                            if (publicationStatus) {
+                                console.log(
+                                    `   Publication status: ${publicationStatus.status}`
+                                );
+
+                                if (publicationStatus.status === "published") {
+                                    console.log(
+                                        `   Published at: ${publicationStatus.publishedAt}`
+                                    );
+                                    console.log(
+                                        `   URL: ${publicationStatus.url}`
+                                    );
+                                }
+                            }
 
                             if (!platformData) {
                                 console.log("   ⚠️ Platform metadata not found.");
