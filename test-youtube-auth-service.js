@@ -88,6 +88,10 @@ async function runTests() {
             });
 
         assert.deepEqual(savedData.tokens, testTokens);
+        assert.deepEqual(savedData.scopes, [
+            "https://www.googleapis.com/auth/youtube.upload",
+            "https://www.googleapis.com/auth/youtube.readonly",
+        ]);
         assert.equal(savedData.schemaVersion, 1);
 
         console.log("✅ Tokens are saved and loaded");

@@ -16,6 +16,14 @@ const SCHEMA_VERSION = 1;
 const YOUTUBE_UPLOAD_SCOPE =
     "https://www.googleapis.com/auth/youtube.upload";
 
+const YOUTUBE_READONLY_SCOPE =
+    "https://www.googleapis.com/auth/youtube.readonly";
+
+const YOUTUBE_SCOPES = [
+    YOUTUBE_UPLOAD_SCOPE,
+    YOUTUBE_READONLY_SCOPE,
+];
+
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000;
 
 export class YouTubeAuthService {
@@ -104,7 +112,7 @@ export class YouTubeAuthService {
     static async saveTokenData({
         tokenPath,
         tokens,
-        scopes = [YOUTUBE_UPLOAD_SCOPE],
+        scopes = YOUTUBE_SCOPES,
     }) {
         if (
             !tokens ||
@@ -345,8 +353,9 @@ export class YouTubeAuthService {
 
             const authorizationUrl = oauthClient.generateAuthUrl({
                 access_type: "offline",
+                include_granted_scopes: true,
                 prompt: "consent",
-                scope: [YOUTUBE_UPLOAD_SCOPE],
+                scope: YOUTUBE_SCOPES,
                 state,
                 code_challenge: codeChallenge,
                 code_challenge_method: "S256",
@@ -390,9 +399,38 @@ export class YouTubeAuthService {
                 tokenPath: config.tokenPath,
             });
 
+            const previousScopes = Array.isArray(previousData?.scopes)
+                ? previousData.scopes
+                : typeof previousData?.tokens?.scope === "string"
+                    ? previousData.tokens.scope.split(/\s+/).filter(Boolean)
+                    : [];
+
+            const grantedScopes =
+                typeof tokens.scope === "string"
+                    ? tokens.scope.split(/\s+/).filter(Boolean)
+                    : [
+                        ...new Set([
+                            ...previousScopes,
+                            ...YOUTUBE_SCOPES,
+                        ]),
+                    ];
+
+            const missingScopes = YOUTUBE_SCOPES.filter(
+                (scope) => !grantedScopes.includes(scope)
+            );
+
+            if (missingScopes.length > 0) {
+                throw new Error(
+                    "Google did not grant all required YouTube permissions: " +
+                    missingScopes.join(", ") +
+                    '. Run "npm run youtube:auth" again and grant both permissions.'
+                );
+            }
+
             const mergedTokens = {
                 ...(previousData?.tokens ?? {}),
                 ...tokens,
+                scope: grantedScopes.join(" "),
             };
 
             if (!mergedTokens.refresh_token) {
@@ -402,11 +440,6 @@ export class YouTubeAuthService {
                     "and run authorization again."
                 );
             }
-
-            const grantedScopes =
-                typeof mergedTokens.scope === "string"
-                    ? mergedTokens.scope.split(" ").filter(Boolean)
-                    : [YOUTUBE_UPLOAD_SCOPE];
 
             const savedPath = await this.saveTokenData({
                 tokenPath: config.tokenPath,
