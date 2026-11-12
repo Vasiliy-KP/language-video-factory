@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "npm run test:all",
-    "test:all": "npm run test:video-subtitles && npm run test:video-template && npm run test:video-render && npm run test:flags && npm run test:video-dynamic && npm run test:video-service && npm run test:excel-reader && npm run test:responsive-layout && npm run test:design-config && npm run test:video-minimal && npm run test:pipeline-design && npm run test:content-config && npm run test:video-simple && npm run test:video-quiz && npm run test:quiz-timeline && npm run test:quiz-audio && npm run test:quiz-video && npm run test:quiz-service && npm run test:pipeline-quiz && npm run test:pipeline-normal && npm run test:pipeline-simple && npm run test:runtime-video-options && npm run test:output-path-service && npm run test:publishing-metadata && npm run test:publishing-metadata-writer && npm run test:publishing-package-writer && npm run test:publishing-readiness-service && npm run test:publishing-queue-service && npm run test:publication-tracking-service && npm run test:publication-status-cli && npm run test:publication-report-service && npm run test:youtube-auth-service && npm run test:youtube-upload-service && npm run test:youtube-video-status-service",
+    "test:all": "npm run test:video-subtitles && npm run test:video-template && npm run test:video-render && npm run test:flags && npm run test:video-dynamic && npm run test:video-service && npm run test:excel-reader && npm run test:responsive-layout && npm run test:design-config && npm run test:video-minimal && npm run test:pipeline-design && npm run test:content-config && npm run test:video-simple && npm run test:video-quiz && npm run test:quiz-timeline && npm run test:quiz-audio && npm run test:quiz-video && npm run test:quiz-service && npm run test:pipeline-quiz && npm run test:pipeline-normal && npm run test:pipeline-simple && npm run test:runtime-video-options && npm run test:output-path-service && npm run test:publishing-metadata && npm run test:publishing-metadata-writer && npm run test:publishing-package-writer && npm run test:publishing-readiness-service && npm run test:publishing-queue-service && npm run test:publication-tracking-service && npm run test:publication-status-cli && npm run test:publication-report-service && npm run test:youtube-auth-service && npm run test:youtube-upload-service && npm run test:youtube-video-status-service && npm run test:youtube-upload-history-service && npm run test:youtube-history-cli && npm run test:youtube-upload-cli",
     "test:video-subtitles": "node test-video-subtitles.js",
     "test:video-template": "node test-video-template.js",
     "test:video-render": "node test-video-render.js",
@@ -50,7 +50,11 @@
     "youtube:upload": "node src/commands/youtube-upload.js",
     "youtube:status": "node src/commands/youtube-status.js",
     "test:youtube-video-status-service": "node test-youtube-video-status-service.js",
-    "test:youtube-upload-service": "node test-youtube-upload-service.js"
+    "test:youtube-upload-service": "node test-youtube-upload-service.js",
+    "test:youtube-upload-history-service": "node test-youtube-upload-history-service.js",
+    "youtube:history": "node src/commands/youtube-history.js",
+    "test:youtube-history-cli": "node test-youtube-history-cli.js",
+    "test:youtube-upload-cli": "node test-youtube-upload-cli.js"
   },
   "keywords": [],
   "author": "",
