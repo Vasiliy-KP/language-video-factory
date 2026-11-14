@@ -23,6 +23,10 @@ const validVideo = {
     hasAudio: true,
     audioCodec: "aac",
     audioSampleRate: 48000,
+    integrity: {
+        checked: true,
+        valid: true,
+    },
 };
 
 const platformFiles = {
@@ -120,13 +124,21 @@ try {
     console.log("▶ Testing PublishingReadinessService...");
 
     // 1. Усі матеріали та параметри відео відповідають правилам.
+    let receivedProbeArguments;
+
     const readyReport = await PublishingReadinessService.check(
         packageDirectory,
         {
             projectRoot: tempRoot,
-            probe: async () => ({ ...validVideo }),
+            probe: async (options) => {
+                receivedProbeArguments = options;
+                return { ...validVideo };
+            },
         }
     );
+
+    assert.equal(receivedProbeArguments.projectRoot, tempRoot);
+    assert.equal(receivedProbeArguments.videoPath, videoPath);
 
     assert.equal(readyReport.status, "ready_for_review");
     assert.equal(readyReport.errors.length, 0);
@@ -160,7 +172,50 @@ try {
 
     console.log("✅ Valid package passed all platform checks");
 
-    // 2. Імітуємо відео з непідтримуваним кодеком,
+    // 2. Перевіряємо реакцію на пошкоджене відео.
+    const corruptedIntegrityReport =
+        await PublishingReadinessService.check(
+            packageDirectory,
+            {
+                projectRoot: tempRoot,
+                probe: async () => ({
+                    ...validVideo,
+                    integrity: {
+                        checked: true,
+                        valid: false,
+                    },
+                }),
+            }
+        );
+
+    assert.equal(
+        corruptedIntegrityReport.status,
+        "needs_fixes"
+    );
+
+    assert.equal(
+        corruptedIntegrityReport.checks.video.integrity.valid,
+        false
+    );
+
+    assert.ok(
+        corruptedIntegrityReport.errors.some(
+            (error) =>
+                error.code === "video_integrity_check_failed"
+        )
+    );
+
+    for (
+        const platform of Object.values(
+            corruptedIntegrityReport.platforms
+        )
+    ) {
+        assert.equal(platform.status, "needs_fixes");
+    }
+
+    console.log("✅ Failed video integrity check was detected");
+
+    // 3. Імітуємо відео з непідтримуваним кодеком,
     // низькою частотою кадрів, без аудіо та з великою тривалістю.
     const invalidVideo = {
         ...validVideo,
@@ -202,7 +257,7 @@ try {
 
     console.log("✅ Invalid video was flagged for fixes");
 
-    // 3. Перевіряємо відсутній текстовий файл платформи.
+    // 4. Перевіряємо відсутній текстовий файл платформи.
     await rm(
         path.join(packagePath, platformFiles.instagram)
     );
@@ -228,7 +283,7 @@ try {
 
     console.log("✅ Missing platform file was detected");
 
-    // 4. Перевіряємо відсутнє відео.
+    // 5. Перевіряємо відсутнє відео.
     await rm(videoPath);
 
     const missingVideoReport =
@@ -256,7 +311,7 @@ try {
 
     console.log("✅ Missing video was detected");
 
-    // 5. Перевіряємо відсутній маніфест.
+    // 6. Перевіряємо відсутній маніфест.
     const missingManifestReport =
         await PublishingReadinessService.check(
             "output/publishing/DoesNotExist",

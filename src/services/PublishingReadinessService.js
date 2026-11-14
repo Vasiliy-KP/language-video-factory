@@ -1,16 +1,15 @@
 
 import {
-    access,
     mkdir,
     readFile,
     stat,
     writeFile,
 } from "node:fs/promises";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import path from "node:path";
 
-const execFileAsync = promisify(execFile);
+import {
+    VideoQualityCheckService,
+} from "./VideoQualityCheckService.js";
 
 const PLATFORM_FILES = {
     tiktok: "tiktok.txt",
@@ -74,85 +73,6 @@ async function isFile(filePath) {
 
         throw error;
     }
-}
-
-function parseFrameRate(value) {
-    if (!value) {
-        return null;
-    }
-
-    const [numerator, denominator] = value.split("/").map(Number);
-
-    if (
-        !Number.isFinite(numerator) ||
-        !Number.isFinite(denominator) ||
-        denominator === 0
-    ) {
-        return null;
-    }
-
-    return numerator / denominator;
-}
-
-async function probeVideo(videoPath) {
-    const { stdout } = await execFileAsync(
-        "ffprobe",
-        [
-            "-v", "error",
-            "-show_entries",
-            [
-                "format=format_name,duration,size,bit_rate",
-                "stream=codec_type,codec_name,width,height",
-                "stream=avg_frame_rate,r_frame_rate",
-                "stream=sample_rate,channels,bit_rate",
-            ].join(":"),
-            "-of", "json",
-            videoPath,
-        ],
-        {
-            windowsHide: true,
-            maxBuffer: 8 * 1024 * 1024,
-        }
-    );
-
-    const result = JSON.parse(stdout);
-    const format = result.format ?? {};
-    const streams = result.streams ?? [];
-
-    const video = streams.find(
-        (stream) => stream.codec_type === "video"
-    );
-
-    const audio = streams.find(
-        (stream) => stream.codec_type === "audio"
-    );
-
-    if (!video) {
-        throw new Error("No video stream found.");
-    }
-
-    const fileStats = await stat(videoPath);
-
-    return {
-        containerFormats: String(format.format_name ?? "")
-            .split(",")
-            .filter(Boolean),
-
-        durationSeconds: Number(format.duration),
-        fileSizeBytes: Number(format.size) || fileStats.size,
-
-        videoCodec: video.codec_name?.toLowerCase() ?? null,
-        width: Number(video.width) || null,
-        height: Number(video.height) || null,
-
-        frameRate:
-            parseFrameRate(video.avg_frame_rate) ??
-            parseFrameRate(video.r_frame_rate),
-
-        hasAudio: Boolean(audio),
-        audioCodec: audio?.codec_name?.toLowerCase() ?? null,
-        audioSampleRate: Number(audio?.sample_rate) || null,
-    };
 }
 
 function validatePlatform(platform, video) {
@@ -347,7 +267,7 @@ export class PublishingReadinessService {
         packageDirectory = "output/publishing/Bicycle",
         {
             projectRoot = process.cwd(),
-            probe = probeVideo,
+            probe = VideoQualityCheckService.inspect,
         } = {}
     ) {
         const root = path.resolve(projectRoot);
@@ -555,12 +475,32 @@ export class PublishingReadinessService {
 
         if (videoExists) {
             try {
-                const video = await probe(videoPath);
+                const video = await probe({
+                    videoPath,
+                    projectRoot: root,
+                });
 
                 report.checks.video.info = video;
 
+                const integrityIsValid =
+                    video.integrity?.checked === true &&
+                    video.integrity?.valid === true;
+
+                report.checks.video.integrity = video.integrity ?? null;
+
+                if (!integrityIsValid) {
+                    addError(
+                        "video_integrity_check_failed",
+                        "Video integrity check was not completed successfully."
+                    );
+                }
+
                 for (const platform of Object.keys(PLATFORM_RULES)) {
                     const result = validatePlatform(platform, video);
+
+                    if (!integrityIsValid) {
+                        result.status = "needs_fixes";
+                    }
 
                     report.platforms[platform] = result;
 
@@ -580,8 +520,8 @@ export class PublishingReadinessService {
                 }
             } catch (error) {
                 addError(
-                    "video_probe_failed",
-                    `Could not inspect video with ffprobe: ${error.message}`
+                    "video_quality_check_failed",
+                    `Could not complete video quality check: ${error.message}`
                 );
             }
         }
