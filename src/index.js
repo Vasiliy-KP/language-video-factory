@@ -193,11 +193,42 @@ async function main() {
 
         //const words = await reader.read();
 
-        const validWords = words.filter(word =>
-            WordValidator.validate(word)
+        const validation = WordValidator.validateAll(words);
+
+        logger.info(
+            `Excel records: ${validation.summary.total}`
         );
 
-        logger.success(`Valid words: ${validWords.length}`);
+        if (!validation.valid) {
+            logger.error(
+                `Excel validation failed: ${validation.summary.invalid} invalid record(s), ` +
+                `${validation.summary.errorCount} issue(s).`
+            );
+
+            for (const error of validation.errors) {
+                const location = error.row === null
+                    ? "Workbook"
+                    : `Excel row ${error.row}`;
+
+                const field = error.field
+                    ? ` [${error.field}]`
+                    : "";
+
+                logger.error(
+                    `${location}${field}: ${error.message}`
+                );
+            }
+
+            throw new Error(
+                "Excel validation failed. Fix the reported issues before generating videos."
+            );
+        }
+
+        const validWords = validation.validWords;
+
+        logger.success(
+            `Validated words: ${validation.summary.valid}`
+        );
 
         let wordsToProcess = validWords;
 

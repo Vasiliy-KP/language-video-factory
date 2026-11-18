@@ -1,6 +1,19 @@
 import ExcelJS from "exceljs";
 import { Word } from "../models/Word.js";
 
+const REQUIRED_HEADERS = [
+    "id",
+    "category",
+    "uk",
+    "en",
+    "pl",
+    "fr",
+    "de",
+    "es",
+    "imagePrompt",
+    "level",
+];
+
 export class ExcelReader {
     async read(filePath) {
         const workbook = new ExcelJS.Workbook();
@@ -14,41 +27,104 @@ export class ExcelReader {
         }
 
         const headerRow = worksheet.getRow(1);
+        const headerValues = headerRow.values ?? [];
 
-        const headers = headerRow.values
-            .slice(1)
-            .map((header) =>
-                String(header).trim()
+        if (headerValues.length <= 1) {
+            throw new Error("Excel header row is empty.");
+        }
+
+        const headers = [];
+        const headerErrors = [];
+        const seenHeaders = new Map();
+
+        for (
+            let columnNumber = 1;
+            columnNumber < headerValues.length;
+            columnNumber++
+        ) {
+            const rawHeader = headerValues[columnNumber];
+
+            if (
+                typeof rawHeader !== "string" ||
+                !rawHeader.trim()
+            ) {
+                headerErrors.push(
+                    `Column ${columnNumber} has an empty or invalid header.`
+                );
+
+                continue;
+            }
+
+            const header = rawHeader.trim();
+            const normalizedHeader = header.toLowerCase();
+
+            headers[columnNumber - 1] = header;
+
+            if (seenHeaders.has(normalizedHeader)) {
+                headerErrors.push(
+                    `Duplicate header "${header}" in columns ` +
+                    `${seenHeaders.get(normalizedHeader)} and ${columnNumber}.`
+                );
+            } else {
+                seenHeaders.set(normalizedHeader, columnNumber);
+            }
+
+            if (!REQUIRED_HEADERS.includes(header)) {
+                headerErrors.push(
+                    `Unknown header "${header}" in column ${columnNumber}.`
+                );
+            }
+        }
+
+        const actualHeaders = new Set(
+            headers.filter(Boolean)
+        );
+
+        for (const requiredHeader of REQUIRED_HEADERS) {
+            if (!actualHeaders.has(requiredHeader)) {
+                headerErrors.push(
+                    `Required header "${requiredHeader}" is missing.`
+                );
+            }
+        }
+
+        if (headerErrors.length > 0) {
+            throw new Error(
+                `Invalid Excel header row:\n- ${headerErrors.join("\n- ")}`
             );
+        }
 
         const words = [];
 
-        worksheet.eachRow(
-            (row, rowNumber) => {
-                if (rowNumber === 1) {
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) {
+                return;
+            }
+
+            const data = {};
+
+            row.eachCell((cell, columnNumber) => {
+                const field = headers[columnNumber - 1];
+
+                if (!field) {
                     return;
                 }
 
-                const data = {};
+                data[field] = cell.value;
+            });
 
-                row.eachCell(
-                    (cell, columnNumber) => {
-                        const field =
-                            headers[columnNumber - 1];
+            const word = new Word(data);
 
-                        if (!field) {
-                            return;
-                        }
+            // Номер рядка потрібен для звіту про помилки.
+            // Він не потрапляє до звичайного переліку властивостей Word.
+            Object.defineProperty(word, "rowNumber", {
+                value: rowNumber,
+                enumerable: false,
+                writable: false,
+            });
 
-                        data[field] = cell.value;
-                    }
-                );
-
-                words.push(
-                    new Word(data)
-                );
-            }
-        );
+            words.push(word);
+        });
 
         return words;
     }
