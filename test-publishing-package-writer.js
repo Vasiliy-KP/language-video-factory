@@ -143,25 +143,56 @@ try {
         await readFile(completeResult.manifestPath, "utf8")
     );
 
+    const packagedVideoPath = path.join(
+        completeResult.directory,
+        "video.mp4"
+    );
+
+    const packagedMetadataPath = path.join(
+        completeResult.directory,
+        "metadata.json"
+    );
+
+    // Перевіряємо статус пакета.
     assert.equal(
         completeManifest.status,
         "ready_for_review"
     );
 
-    assert.equal(completeManifest.assets.video.exists, true);
-    assert.equal(completeManifest.assets.metadata.exists, true);
-
+    // Перевіряємо існування копій.
+    assert.equal(
+        completeManifest.assets.video.exists,
+        true
+    );
 
     assert.equal(
+        completeManifest.assets.metadata.exists,
+        true
+    );
+
+    // Manifest повинен посилатися на копії всередині пакета.
+    assert.equal(
         path.resolve(completeManifest.assets.video.path),
-        path.resolve(videoPath)
+        path.resolve(packagedVideoPath)
     );
 
     assert.equal(
         path.resolve(completeManifest.assets.metadata.path),
+        path.resolve(packagedMetadataPath)
+    );
+
+    // Шляхи до оригіналів повинні зберігатися.
+    assert.equal(
+        path.resolve(completeManifest.assets.video.sourcePath),
+        path.resolve(videoPath)
+    );
+
+    assert.equal(
+        path.resolve(completeManifest.assets.metadata.sourcePath),
         path.resolve(metadataPath)
     );
 
+    // Шляхи пакета мають бути відносними.
     assert.equal(
         path.isAbsolute(completeManifest.assets.video.path),
         false
@@ -172,7 +203,51 @@ try {
         false
     );
 
+    // Перевіряємо вміст скопійованих файлів.
+    assert.equal(
+        await readFile(packagedVideoPath, "utf8"),
+        "test video"
+    );
 
+    assert.equal(
+        await readFile(packagedMetadataPath, "utf8"),
+        JSON.stringify(metadata)
+    );
+
+    // Оригінальні файли повинні залишитися недоторканими.
+    assert.equal(
+        await readFile(videoPath, "utf8"),
+        "test video"
+    );
+
+    assert.equal(
+        await readFile(metadataPath, "utf8"),
+        JSON.stringify(metadata)
+    );
+
+    // Перевіряємо результат, який повертає Writer.
+    assert.equal(
+        completeResult.assets.video,
+        packagedVideoPath
+    );
+
+    assert.equal(
+        completeResult.assets.metadata,
+        packagedMetadataPath
+    );
+
+    assert.equal(
+        path.isAbsolute(completeResult.assets.video),
+        true
+    );
+
+    assert.equal(
+        path.isAbsolute(completeResult.assets.metadata),
+        true
+    );
+
+    console.log("✅ Video and metadata copied into package");
+    console.log("✅ Original assets preserved");
     console.log("✅ Ready-for-review manifest verified");
 
 
@@ -239,6 +314,48 @@ try {
         /non-empty word/
     );
 
+    const missingSourceResult =
+        await PublishingPackageWriter.save(
+            metadata,
+            tempDirectory,
+            {
+                videoPath: path.join(
+                    tempDirectory,
+                    "missing-video.mp4"
+                ),
+                metadataPath: path.join(
+                    tempDirectory,
+                    "missing-metadata.json"
+                ),
+            }
+        );
+
+    const missingSourceManifest = JSON.parse(
+        await readFile(
+            missingSourceResult.manifestPath,
+            "utf8"
+        )
+    );
+
+    assert.equal(
+        missingSourceManifest.status,
+        "metadata_ready"
+    );
+
+    assert.equal(
+        missingSourceManifest.assets.video.exists,
+        false
+    );
+
+    assert.equal(
+        missingSourceManifest.assets.metadata.exists,
+        false
+    );
+
+    assert.equal(missingSourceResult.assets.video, null);
+    assert.equal(missingSourceResult.assets.metadata, null);
+
+    console.log("✅ Missing source assets are handled correctly");
     console.log("✅ Invalid metadata validation passed");
     console.log("\n✅ Publishing package writer tests passed.");
 } catch (error) {

@@ -1,9 +1,11 @@
-
 import {
-    access,
+    copyFile,
     mkdir,
+    rm,
+    stat,
     writeFile,
 } from "node:fs/promises";
+
 import path from "node:path";
 
 async function fileExists(filePath) {
@@ -12,8 +14,8 @@ async function fileExists(filePath) {
     }
 
     try {
-        await access(filePath);
-        return true;
+        const fileStats = await stat(filePath);
+        return fileStats.isFile();
     } catch (error) {
         if (
             error.code === "ENOENT" ||
@@ -26,7 +28,6 @@ async function fileExists(filePath) {
     }
 }
 
-
 function toProjectRelativePath(filePath) {
     if (!filePath) {
         return null;
@@ -38,6 +39,29 @@ function toProjectRelativePath(filePath) {
     );
 }
 
+async function copyAsset(sourcePath, destinationPath) {
+    const destination = path.resolve(destinationPath);
+
+    const source = sourcePath
+        ? path.resolve(sourcePath)
+        : null;
+
+    // Не копіюємо файл у самого себе.
+    if (source === destination) {
+        return fileExists(destination);
+    }
+
+    // Видаляємо стару копію, якщо джерело відсутнє.
+    // Це захищає від використання застарілих матеріалів.
+    if (!source || !(await fileExists(source))) {
+        await rm(destination, { force: true });
+        return false;
+    }
+
+    await copyFile(source, destination);
+
+    return true;
+}
 
 export class PublishingPackageWriter {
     static async save(
@@ -76,11 +100,20 @@ export class PublishingPackageWriter {
             .replace(/[. ]+$/g, "")
             .trim();
 
-        if (!safeWord || safeWord === "." || safeWord === "..") {
-            throw new Error("Word cannot be used as a folder name.");
+        if (
+            !safeWord ||
+            safeWord === "." ||
+            safeWord === ".."
+        ) {
+            throw new Error(
+                "Word cannot be used as a folder name."
+            );
         }
 
-        const directory = path.join(outputDirectory, safeWord);
+        const directory = path.join(
+            outputDirectory,
+            safeWord
+        );
 
         await mkdir(directory, { recursive: true });
 
@@ -133,14 +166,32 @@ export class PublishingPackageWriter {
                 : null;
 
         const normalizedMetadataPath =
-            typeof metadataPath === "string" && metadataPath.trim()
+            typeof metadataPath === "string" &&
+                metadataPath.trim()
                 ? metadataPath.trim()
                 : null;
 
-        // Перевіряємо, чи існують відео та JSON.
+        // Шляхи до копій усередині пакета.
+        const packagedVideoPath = path.join(
+            directory,
+            "video.mp4"
+        );
+
+        const packagedMetadataPath = path.join(
+            directory,
+            "metadata.json"
+        );
+
+        // Копіюємо відео та метадані.
         const [videoExists, metadataExists] = await Promise.all([
-            fileExists(normalizedVideoPath),
-            fileExists(normalizedMetadataPath),
+            copyAsset(
+                normalizedVideoPath,
+                packagedVideoPath
+            ),
+            copyAsset(
+                normalizedMetadataPath,
+                packagedMetadataPath
+            ),
         ]);
 
         const manifest = {
@@ -156,11 +207,26 @@ export class PublishingPackageWriter {
 
             assets: {
                 video: {
-                    path: toProjectRelativePath(normalizedVideoPath),
+                    path: normalizedVideoPath
+                        ? toProjectRelativePath(packagedVideoPath)
+                        : null,
+
+                    sourcePath: toProjectRelativePath(
+                        normalizedVideoPath
+                    ),
+
                     exists: videoExists,
                 },
+
                 metadata: {
-                    path: toProjectRelativePath(normalizedMetadataPath),
+                    path: normalizedMetadataPath
+                        ? toProjectRelativePath(packagedMetadataPath)
+                        : null,
+
+                    sourcePath: toProjectRelativePath(
+                        normalizedMetadataPath
+                    ),
+
                     exists: metadataExists,
                 },
             },
@@ -170,10 +236,12 @@ export class PublishingPackageWriter {
                     file: "tiktok.txt",
                     ready: true,
                 },
+
                 instagram: {
                     file: "instagram.txt",
                     ready: true,
                 },
+
                 youtubeShorts: {
                     file: "youtube-shorts.txt",
                     ready: true,
@@ -181,17 +249,29 @@ export class PublishingPackageWriter {
             },
         };
 
-        const manifestPath = path.join(directory, "manifest.json");
+        const manifestPath = path.join(
+            directory,
+            "manifest.json"
+        );
 
         await writeFile(
             manifestPath,
-            JSON.stringify(manifest, null, 2) + "\n",
+            `${JSON.stringify(manifest, null, 2)}\n`,
             "utf8"
         );
 
         return {
             directory,
             files: savedPaths,
+            assets: {
+                video: videoExists
+                    ? packagedVideoPath
+                    : null,
+
+                metadata: metadataExists
+                    ? packagedMetadataPath
+                    : null,
+            },
             manifestPath,
         };
     }
