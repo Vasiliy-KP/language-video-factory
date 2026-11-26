@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+    access,
     mkdtemp,
     readFile,
     rm,
@@ -10,37 +11,22 @@ import path from "node:path";
 
 import { PublishingPackageWriter } from
     "./src/services/PublishingPackageWriter.js";
+import {
+    PublishingMetadataService,
+} from "./src/services/PublishingMetadataService.js";
 
-const metadata = {
-    word: "Bicycle",
-
-    platforms: {
-        tiktok: {
-            caption: 'Learn "Bicycle" in 6 languages!',
-            hashtags: [
-                "#LanguageLearning",
-                "#Bicycle",
-            ],
-        },
-
-        instagram: {
-            caption: "Practice languages every day!",
-            hashtags: [
-                "#LearnLanguages",
-                "#Reels",
-            ],
-        },
-
-        youtubeShorts: {
-            title: "Bicycle in 6 languages | A1 Vocabulary",
-            description: "Learn the word Bicycle in six languages.",
-            hashtags: [
-                "#LanguageLearning",
-                "#Shorts",
-            ],
-        },
-    },
+const wordData = {
+    category: "Transport",
+    level: "A1",
+    uk: "велосипед",
+    en: "Bicycle",
+    pl: "Rower",
+    fr: "Vélo",
+    de: "Fahrrad",
+    es: "Bicicleta",
 };
+
+const metadata = PublishingMetadataService.create(wordData);
 
 let tempDirectory;
 
@@ -251,51 +237,129 @@ try {
     console.log("✅ Ready-for-review manifest verified");
 
 
-    // Перевіряємо TikTok.
+    // TikTok
     const tiktok = await readFile(
         result.files["tiktok.txt"],
         "utf8"
     );
 
-    assert.ok(tiktok.includes('Learn "Bicycle"'));
-    assert.ok(tiktok.includes("#LanguageLearning"));
-    assert.ok(tiktok.includes("#Bicycle"));
+    assert.ok(
+        tiktok.includes(metadata.platforms.tiktok.caption.trim())
+    );
+
+    for (const hashtag of metadata.platforms.tiktok.hashtags) {
+        assert.ok(tiktok.includes(hashtag));
+    }
 
     console.log("✅ TikTok content verified");
 
-    // Перевіряємо Instagram.
+    // Instagram
     const instagram = await readFile(
         result.files["instagram.txt"],
         "utf8"
     );
 
     assert.ok(
-        instagram.includes("Practice languages every day!")
+        instagram.includes(metadata.platforms.instagram.caption.trim())
     );
-    assert.ok(instagram.includes("#LearnLanguages"));
-    assert.ok(instagram.includes("#Reels"));
+
+    assert.equal(metadata.platforms.instagram.hashtags.length, 5);
+
+    for (const hashtag of metadata.platforms.instagram.hashtags) {
+        assert.ok(instagram.includes(hashtag));
+    }
 
     console.log("✅ Instagram content verified");
 
-    // Перевіряємо YouTube Shorts.
+    // YouTube Shorts
     const youtube = await readFile(
         result.files["youtube-shorts.txt"],
         "utf8"
     );
 
     assert.ok(
-        youtube.includes(
-            "Bicycle in 6 languages | A1 Vocabulary"
-        )
+        youtube.includes(metadata.platforms.youtubeShorts.title)
     );
+
     assert.ok(
-        youtube.includes(
-            "Learn the word Bicycle in six languages."
-        )
+        youtube.includes(metadata.platforms.youtubeShorts.description)
     );
-    assert.ok(youtube.includes("#Shorts"));
+
+    for (const hashtag of metadata.platforms.youtubeShorts.hashtags) {
+        assert.ok(youtube.includes(hashtag));
+    }
 
     console.log("✅ YouTube Shorts content verified");
+
+    // Перевіряємо, що metadata object має збігатися з JSON-файлом.
+    const mismatchedMetadataPath = path.join(
+        tempDirectory,
+        "mismatched-metadata.json"
+    );
+
+    await writeFile(
+        mismatchedMetadataPath,
+        JSON.stringify({
+            ...metadata,
+            word: "DifferentWord",
+        }),
+        "utf8"
+    );
+
+    const mismatchedOutputDirectory = path.join(
+        tempDirectory,
+        "mismatched-packages"
+    );
+
+    await assert.rejects(
+        () => PublishingPackageWriter.save(
+            metadata,
+            mismatchedOutputDirectory,
+            {
+                metadataPath: mismatchedMetadataPath,
+            }
+        ),
+        /Metadata object does not match/
+    );
+
+    await assert.rejects(
+        access(
+            path.join(mismatchedOutputDirectory, "Bicycle")
+        ),
+        { code: "ENOENT" }
+    );
+
+    console.log("✅ Mismatched metadata source is rejected");
+    console.log("✅ No partial package is created");
+
+    // Некоректний контент не повинен створювати publishing package.
+    const invalidMetadata = structuredClone(metadata);
+
+    invalidMetadata.platforms.instagram.hashtags.push("#ExtraTag");
+
+    const invalidOutputDirectory = path.join(
+        tempDirectory,
+        "invalid-packages"
+    );
+
+    await assert.rejects(
+        () => PublishingPackageWriter.save(
+            invalidMetadata,
+            invalidOutputDirectory
+        ),
+        /Publishing content validation failed/
+    );
+
+    console.log("✅ Invalid publishing content is rejected");
+
+    await assert.rejects(
+        access(
+            path.join(invalidOutputDirectory, "Bicycle")
+        ),
+        { code: "ENOENT" }
+    );
+
+    console.log("✅ Invalid content does not create a partial package");
 
     // Перевіряємо реакцію на некоректні дані.
     await assert.rejects(

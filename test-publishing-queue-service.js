@@ -37,6 +37,11 @@ function createReport(word, status = "ready_for_review") {
         errors: [],
         warnings: [],
         checks: {
+            content: {
+                valid: true,
+                errors: [],
+                warnings: [],
+            },
             video: {
                 path: `output/videos/${word.toLowerCase()}.mp4`,
                 exists: true,
@@ -61,7 +66,7 @@ try {
     );
 
     const publishingDirectory = "output/publishing";
-    const packageNames = ["Bicycle", "Apple", "Pear"];
+    const packageNames = ["Bicycle", "Apple", "Pear", "Orange"];
 
     for (const word of packageNames) {
         await mkdir(
@@ -90,6 +95,22 @@ try {
             return report;
         }
 
+        if (word === "Orange") {
+            const report = createReport(word);
+
+            // Імітуємо звіт, у якому всі перевірки пройшли,
+            // але Content Validation не підтвердила контент.
+            report.checks.content.valid = false;
+
+            report.checks.content.errors.push({
+                code: "missing_translation",
+                field: "translations",
+                message: 'Required translation "es" is missing.',
+            });
+
+            return report;
+        }
+
         return createReport(word);
     };
 
@@ -107,9 +128,9 @@ try {
         ["Bicycle"]
     );
 
-    assert.equal(queue.summary.scanned, 3);
+    assert.equal(queue.summary.scanned, 4);
     assert.equal(queue.summary.eligible, 1);
-    assert.equal(queue.summary.excluded, 2);
+    assert.equal(queue.summary.excluded, 3);
 
     assert.deepEqual(
         queue.items[0].platforms.slice().sort(),
@@ -134,6 +155,27 @@ try {
     );
 
     console.log("✅ Package needing fixes was excluded");
+
+    // Orange має бути виключений саме через Content Validation.
+    const orange = queue.excluded.find(
+        (item) => item.word === "Orange"
+    );
+
+    assert.ok(orange);
+
+    assert.ok(
+        orange.contentErrors.some(
+            (error) => error.code === "missing_translation"
+        )
+    );
+
+    assert.ok(
+        !queue.items.some(
+            (item) => item.word === "Orange"
+        )
+    );
+
+    console.log("✅ Package with invalid content was excluded");
 
     // 3. Збій перевірки Pear не зупиняє побудову черги.
     const pear = queue.excluded.find(

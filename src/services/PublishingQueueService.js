@@ -73,12 +73,16 @@ export class PublishingQueueService {
                             platform.status === "ready_for_review"
                     );
 
+                const contentIsValid =
+                    report.checks?.content?.valid === true;
+
                 const isEligible =
                     report.status === "ready_for_review" &&
                     (report.errors ?? []).length === 0 &&
                     allPlatformsReady &&
                     report.checks?.video?.exists === true &&
-                    report.checks?.metadata?.validJson === true;
+                    report.checks?.metadata?.validJson === true &&
+                    contentIsValid;
 
                 if (!isEligible) {
                     const platformErrors = platformEntries
@@ -95,6 +99,7 @@ export class PublishingQueueService {
                         packageDirectory: relativePackagePath,
                         status: report.status ?? "unknown",
                         errors: report.errors ?? [],
+                        contentErrors: report.checks?.content?.errors ?? [],
                         platformErrors,
                     });
 

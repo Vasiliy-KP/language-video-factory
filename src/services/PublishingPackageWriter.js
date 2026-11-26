@@ -1,12 +1,21 @@
 import {
     copyFile,
     mkdir,
+    readFile,
     rm,
     stat,
     writeFile,
 } from "node:fs/promises";
 
 import path from "node:path";
+
+import {
+    isDeepStrictEqual,
+} from "node:util";
+
+import {
+    PublishingContentValidationService,
+} from "./PublishingContentValidationService.js";
 
 async function fileExists(filePath) {
     if (!filePath) {
@@ -115,33 +124,43 @@ export class PublishingPackageWriter {
             safeWord
         );
 
-        await mkdir(directory, { recursive: true });
-
-        const formatCaption = (platform) => {
-            if (
-                typeof platform.caption !== "string" ||
-                !Array.isArray(platform.hashtags)
-            ) {
-                throw new Error(
-                    "Invalid caption or hashtags."
-                );
+        const formatHashtags = (platform) => {
+            if (!Array.isArray(platform?.hashtags)) {
+                return "";
             }
 
+            return platform.hashtags
+                .filter((hashtag) => typeof hashtag === "string")
+                .join(" ");
+        };
+
+        const formatCaption = (platform) => {
+            const caption =
+                typeof platform?.caption === "string"
+                    ? platform.caption.trim()
+                    : "";
+
             return [
-                platform.caption.trim(),
-                platform.hashtags.join(" "),
-            ].filter(Boolean).join("\n\n");
+                caption,
+                formatHashtags(platform),
+            ]
+                .filter(Boolean)
+                .join("\n\n");
         };
 
         const youtubeContent = [
             "TITLE",
-            youtubeShorts.title,
+            typeof youtubeShorts.title === "string"
+                ? youtubeShorts.title
+                : "",
             "",
             "DESCRIPTION",
-            youtubeShorts.description,
+            typeof youtubeShorts.description === "string"
+                ? youtubeShorts.description
+                : "",
             "",
             "HASHTAGS",
-            youtubeShorts.hashtags.join(" "),
+            formatHashtags(youtubeShorts),
         ].join("\n");
 
         const files = {
@@ -150,14 +169,42 @@ export class PublishingPackageWriter {
             "youtube-shorts.txt": youtubeContent,
         };
 
-        const savedPaths = {};
+        const platformContents = {
+            tiktok: files["tiktok.txt"],
+            instagram: files["instagram.txt"],
+            youtubeShorts: files["youtube-shorts.txt"],
+        };
 
-        for (const [fileName, content] of Object.entries(files)) {
-            const filePath = path.join(directory, fileName);
+        const validation =
+            PublishingContentValidationService.validate({
+                metadata,
+                platformContents,
+            });
 
-            await writeFile(filePath, content, "utf8");
+        if (!validation.valid) {
+            const validationErrors = [
+                ...validation.errors,
+                ...Object.entries(validation.platforms).flatMap(
+                    ([platform, result]) =>
+                        result.errors.map((error) => ({
+                            platform,
+                            ...error,
+                        }))
+                ),
+            ];
 
-            savedPaths[fileName] = filePath;
+            const details = validationErrors.map((error) => {
+                const platform = error.platform
+                    ? `${error.platform}: `
+                    : "";
+
+                return `${platform}${error.code}: ${error.message}`;
+            });
+
+            throw new Error(
+                "Publishing content validation failed:\n" +
+                details.join("\n")
+            );
         }
 
         const normalizedVideoPath =
@@ -170,6 +217,42 @@ export class PublishingPackageWriter {
                 metadataPath.trim()
                 ? metadataPath.trim()
                 : null;
+
+        if (
+            normalizedMetadataPath &&
+            await fileExists(normalizedMetadataPath)
+        ) {
+            let sourceMetadata;
+
+            try {
+                sourceMetadata = JSON.parse(
+                    await readFile(normalizedMetadataPath, "utf8")
+                );
+            } catch {
+                throw new Error(
+                    `Metadata source file is not valid JSON: ${normalizedMetadataPath}`
+                );
+            }
+
+            if (!isDeepStrictEqual(sourceMetadata, metadata)) {
+                throw new Error(
+                    "Metadata object does not match the metadata source file."
+                );
+            }
+        }
+
+        // Створюємо директорію тільки після успішної валідації контенту.
+        await mkdir(directory, { recursive: true });
+
+        const savedPaths = {};
+
+        for (const [fileName, content] of Object.entries(files)) {
+            const filePath = path.join(directory, fileName);
+
+            await writeFile(filePath, content, "utf8");
+
+            savedPaths[fileName] = filePath;
+        }
 
         // Шляхи до копій усередині пакета.
         const packagedVideoPath = path.join(
