@@ -11,6 +11,10 @@ import {
     VideoQualityCheckService,
 } from "./VideoQualityCheckService.js";
 
+import {
+    PublishingContentValidationService,
+} from "./PublishingContentValidationService.js";
+
 const PLATFORM_FILES = {
     tiktok: "tiktok.txt",
     instagram: "instagram.txt",
@@ -414,14 +418,20 @@ export class PublishingReadinessService {
             );
         }
 
+        let metadata = null;
+
         if (metadataExists) {
             try {
-                const metadata = JSON.parse(
+                metadata = JSON.parse(
                     await readFile(metadataPath, "utf8")
                 );
 
                 report.checks.metadata.validJson =
-                    Boolean(metadata && typeof metadata === "object");
+                    Boolean(
+                        metadata &&
+                        typeof metadata === "object" &&
+                        !Array.isArray(metadata)
+                    );
 
                 if (!report.checks.metadata.validJson) {
                     addError(
@@ -444,10 +454,26 @@ export class PublishingReadinessService {
 
         report.checks.platformFiles = {};
 
+        const platformContents = {};
+
         for (const [platform, fileName] of Object.entries(PLATFORM_FILES)) {
             const platformEntry = manifest.platforms?.[platform];
             const filePath = path.join(directory, fileName);
             const exists = await isFile(filePath);
+
+            if (exists) {
+                try {
+                    platformContents[platform] = await readFile(
+                        filePath,
+                        "utf8"
+                    );
+                } catch (error) {
+                    addError(
+                        "platform_file_read_failed",
+                        `Could not read ${fileName}: ${error.message}`
+                    );
+                }
+            }
 
             report.checks.platformFiles[platform] = {
                 file: fileName,
@@ -471,6 +497,21 @@ export class PublishingReadinessService {
                     `Required publishing file is missing: ${fileName}`
                 );
             }
+        }
+
+        let contentReport = null;
+
+        if (report.checks.metadata.validJson && metadata) {
+            contentReport = PublishingContentValidationService.validate({
+                metadata,
+                platformContents,
+            });
+        } else {
+            report.checks.content = {
+                valid: false,
+                skipped: true,
+                reason: "metadata_unavailable",
+            };
         }
 
         if (videoExists) {
@@ -524,6 +565,73 @@ export class PublishingReadinessService {
                     `Could not complete video quality check: ${error.message}`
                 );
             }
+        }
+
+        if (contentReport) {
+            report.checks.content = {
+                valid: contentReport.valid,
+                errors: contentReport.errors,
+                warnings: contentReport.warnings,
+                platforms: contentReport.platforms,
+            };
+
+            // Глобальні помилки метаданих.
+            for (const error of contentReport.errors) {
+                report.errors.push({
+                    source: "publishing_content",
+                    ...error,
+                });
+            }
+
+            // Об'єднуємо контентні результати з перевірками відео.
+            for (
+                const [platform, contentResult]
+                of Object.entries(contentReport.platforms)
+            ) {
+                const platformReport = report.platforms[platform] ?? {
+                    status: "ready_for_review",
+                    errors: [],
+                    warnings: [],
+                };
+
+                platformReport.errors.push(
+                    ...contentResult.errors
+                );
+
+                platformReport.warnings.push(
+                    ...contentResult.warnings
+                );
+
+                platformReport.status =
+                    platformReport.errors.length > 0 ||
+                        platformReport.status === "needs_fixes"
+                        ? "needs_fixes"
+                        : "ready_for_review";
+
+                report.platforms[platform] = platformReport;
+
+                for (const error of contentResult.errors) {
+                    // Загальна перевірка вже додає цю помилку.
+                    // Не дублюємо її в основному списку.
+                    if (error.code === "platform_file_missing") {
+                        continue;
+                    }
+
+                    report.errors.push({
+                        platform,
+                        source: "publishing_content",
+                        ...error,
+                    });
+                }
+            }
+
+            // Попередження не блокують готовність пакета.
+            report.warnings.push(
+                ...contentReport.warnings.map((warning) => ({
+                    source: "publishing_content",
+                    ...warning,
+                }))
+            );
         }
 
         return finish();

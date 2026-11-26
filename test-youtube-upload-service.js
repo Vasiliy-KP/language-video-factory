@@ -178,6 +178,46 @@ async function runTests() {
 
         console.log("✅ Custom metadata and privacy are supported");
 
+        // Перевіряємо 5000 українських символів.
+        // UTF-8 розмір буде більшим за 5000 байтів,
+        // але опис має пройти перевірку.
+        const unicodeDescription = "ї".repeat(5000);
+
+        await YouTubeUploadService.upload({
+            videoPath,
+            metadata,
+            description: unicodeDescription,
+            hashtags: [],
+            authClient: fakeAuthClient,
+            youtubeClientFactory: fakeYoutubeClientFactory,
+        });
+
+        assert.equal(
+            capturedRequest.requestBody.snippet.description,
+            unicodeDescription
+        );
+
+        assert.ok(
+            Buffer.byteLength(unicodeDescription, "utf8") > 5000
+        );
+
+        console.log("✅ YouTube description counts Unicode characters, not bytes");
+
+        // 5001 символ уже має бути відхилено.
+        await assert.rejects(
+            YouTubeUploadService.upload({
+                videoPath,
+                metadata,
+                description: "ї".repeat(5001),
+                hashtags: [],
+                authClient: fakeAuthClient,
+                youtubeClientFactory: fakeYoutubeClientFactory,
+            }),
+            /cannot exceed 5000 characters/
+        );
+
+        console.log("✅ YouTube description character limit is enforced");
+
         await assert.rejects(
             YouTubeUploadService.upload({
                 videoPath: path.join(tempRoot, "missing.mp4"),

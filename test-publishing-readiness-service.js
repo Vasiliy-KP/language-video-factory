@@ -11,6 +11,9 @@ import path from "node:path";
 
 import { PublishingReadinessService } from
     "./src/services/PublishingReadinessService.js";
+import {
+    PublishingMetadataService,
+} from "./src/services/PublishingMetadataService.js";
 
 const validVideo = {
     containerFormats: ["mp4"],
@@ -34,6 +37,43 @@ const platformFiles = {
     instagram: "instagram.txt",
     youtubeShorts: "youtube-shorts.txt",
 };
+
+const wordData = {
+    category: "Transport",
+    level: "A1",
+    uk: "велосипед",
+    en: "Bicycle",
+    pl: "Rower",
+    fr: "Vélo",
+    de: "Fahrrad",
+    es: "Bicicleta",
+};
+
+const metadata = PublishingMetadataService.create(wordData);
+
+function buildPlatformFileContent(sourceMetadata, platformName) {
+    const platform = sourceMetadata.platforms[platformName];
+
+    if (platformName === "youtubeShorts") {
+        return [
+            "TITLE",
+            platform.title,
+            "",
+            "DESCRIPTION",
+            platform.description,
+            "",
+            "HASHTAGS",
+            platform.hashtags.join(" "),
+        ].join("\n");
+    }
+
+    return [
+        platform.caption.trim(),
+        platform.hashtags.join(" "),
+    ]
+        .filter(Boolean)
+        .join("\n\n");
+}
 
 let tempRoot;
 
@@ -69,14 +109,14 @@ try {
 
     await writeFile(
         metadataPath,
-        JSON.stringify({ word: "Bicycle" }, null, 2),
+        JSON.stringify(metadata, null, 2),
         "utf8"
     );
 
-    for (const fileName of Object.values(platformFiles)) {
+    for (const [platform, fileName] of Object.entries(platformFiles)) {
         await writeFile(
             path.join(packagePath, fileName),
-            "Test publishing content",
+            buildPlatformFileContent(metadata, platform),
             "utf8"
         );
     }
@@ -145,6 +185,15 @@ try {
     assert.equal(readyReport.checks.video.exists, true);
     assert.equal(readyReport.checks.metadata.validJson, true);
 
+    assert.equal(readyReport.checks.content.valid, true);
+
+    assert.equal(
+        readyReport.checks.content.errors.length,
+        0
+    );
+
+    console.log("✅ Publishing content passed validation");
+
     for (const platform of Object.keys(platformFiles)) {
         assert.equal(
             readyReport.platforms[platform].status,
@@ -171,6 +220,129 @@ try {
     console.log("✅ readiness.json was saved and verified");
 
     console.log("✅ Valid package passed all platform checks");
+
+    // Перевіряємо, що змінений текстовий файл блокує готовність.
+    const tiktokPath = path.join(
+        packagePath,
+        platformFiles.tiktok
+    );
+
+    const originalTiktokContent = await readFile(
+        tiktokPath,
+        "utf8"
+    );
+
+    await writeFile(
+        tiktokPath,
+        "Incorrect publishing content",
+        "utf8"
+    );
+
+    const mismatchedContentReport =
+        await PublishingReadinessService.check(
+            packageDirectory,
+            {
+                projectRoot: tempRoot,
+                probe: async () => ({ ...validVideo }),
+            }
+        );
+
+    assert.equal(
+        mismatchedContentReport.status,
+        "needs_fixes"
+    );
+
+    assert.ok(
+        mismatchedContentReport.platforms.tiktok.errors.some(
+            (error) => error.code === "platform_file_mismatch"
+        )
+    );
+
+    assert.equal(
+        mismatchedContentReport.platforms.instagram.status,
+        "ready_for_review"
+    );
+
+    await writeFile(
+        tiktokPath,
+        originalTiktokContent,
+        "utf8"
+    );
+
+    console.log("✅ Publishing file mismatch blocks only affected platform");
+
+    // Понад 60 хештегів YouTube має створювати попередження,
+    // але не блокувати готовність пакета.
+    const metadataWithWarnings = structuredClone(metadata);
+
+    metadataWithWarnings.platforms.youtubeShorts.hashtags =
+        Array.from(
+            { length: 61 },
+            (_, index) => `#Tag${index}`
+        );
+
+    await writeFile(
+        metadataPath,
+        JSON.stringify(metadataWithWarnings, null, 2),
+        "utf8"
+    );
+
+    await writeFile(
+        path.join(
+            packagePath,
+            platformFiles.youtubeShorts
+        ),
+        buildPlatformFileContent(
+            metadataWithWarnings,
+            "youtubeShorts"
+        ),
+        "utf8"
+    );
+
+    const warningReport =
+        await PublishingReadinessService.check(
+            packageDirectory,
+            {
+                projectRoot: tempRoot,
+                probe: async () => ({ ...validVideo }),
+            }
+        );
+
+    assert.equal(
+        warningReport.status,
+        "ready_for_review"
+    );
+
+    assert.ok(
+        warningReport.warnings.some(
+            (warning) =>
+                warning.code === "hashtag_limit_exceeded" &&
+                warning.platform === "youtubeShorts"
+        )
+    );
+
+    assert.equal(
+        warningReport.platforms.youtubeShorts.status,
+        "ready_for_review"
+    );
+
+    // Повертаємо початкові метадані та текст YouTube.
+    await writeFile(
+        metadataPath,
+        JSON.stringify(metadata, null, 2),
+        "utf8"
+    );
+
+    await writeFile(
+        path.join(
+            packagePath,
+            platformFiles.youtubeShorts
+        ),
+        buildPlatformFileContent(metadata, "youtubeShorts"),
+        "utf8"
+    );
+
+    console.log("✅ Non-blocking content warnings are handled correctly");
 
     // 2. Перевіряємо реакцію на пошкоджене відео.
     const corruptedIntegrityReport =

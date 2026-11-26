@@ -35,7 +35,24 @@ function createHashtag(value) {
 }
 
 function uniqueHashtags(values) {
-    return [...new Set(values.filter(Boolean))];
+    const seen = new Set();
+
+    return values.filter((value) => {
+        if (!value) {
+            return false;
+        }
+
+        const normalized = value
+            .normalize("NFKC")
+            .toLowerCase();
+
+        if (seen.has(normalized)) {
+            return false;
+        }
+
+        seen.add(normalized);
+        return true;
+    });
 }
 
 export class PublishingMetadataService {
@@ -104,9 +121,11 @@ export class PublishingMetadataService {
                     caption:
                         `${caption}\n\nPractice a little every day ✨`,
                     hashtags: uniqueHashtags([
-                        ...commonHashtags,
-                        "#Multilingual",
-                        "#Reels",
+                        "#LanguageLearning",
+                        "#Vocabulary",
+                        createHashtag(englishWord),
+                        createHashtag(category),
+                        createHashtag(level),
                     ]),
                 },
 

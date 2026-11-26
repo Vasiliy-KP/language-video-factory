@@ -94,9 +94,9 @@ function validateVideoMetadata({
         throw new Error("YouTube video description is required.");
     }
 
-    if (Buffer.byteLength(finalDescription, "utf8") > 5000) {
+    if (Array.from(finalDescription).length > 5000) {
         throw new Error(
-            "YouTube video description cannot exceed 5000 bytes."
+            "YouTube video description cannot exceed 5000 characters."
         );
     }
 

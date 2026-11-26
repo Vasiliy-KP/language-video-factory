@@ -43,8 +43,26 @@ assert.ok(
     metadata.platforms.tiktok.hashtags.includes("#Bicycle")
 );
 
+assert.equal(
+    metadata.platforms.instagram.hashtags.length,
+    5
+);
+
 assert.ok(
-    metadata.platforms.instagram.hashtags.includes("#Reels")
+    metadata.platforms.instagram.hashtags.includes("#Bicycle")
+);
+
+assert.ok(
+    metadata.platforms.instagram.hashtags.includes("#Transport")
+);
+
+assert.ok(
+    metadata.platforms.instagram.hashtags.includes("#A1")
+);
+
+assert.equal(
+    metadata.platforms.instagram.hashtags.includes("#Reels"),
+    false
 );
 
 assert.ok(
